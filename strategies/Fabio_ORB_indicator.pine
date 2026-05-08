@@ -1,0 +1,291 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// Fabio ORB — INDICATOR (visual + alerts). No Strategy Tester; no broker orders.
+// Pair with strategies/Fabio_ORB.pine later if you want backtests again.
+//
+// Docs: https://www.tradingview.com/pine-script-docs/  |  v6 ref: https://www.tradingview.com/pine-script-reference/v6/
+//
+//@version=6
+indicator("Fabio ORB (indicator)", shorttitle="Fabio ORB ind", overlay=true, max_labels_count=500)
+
+grpMode = "Fabio mode"
+backtestMode = input.string("research", "Mode", options=["research", "live_mirror"], group=grpMode)
+
+grpVix = "VIX tiers"
+vixSkip      = input.float(14.0,  "Skip if VIX below", group=grpVix)
+vixHalfMax   = input.float(16.0,  "Half risk cap at or below", group=grpVix)
+vixNormalMax = input.float(20.0,  "Full risk cap at or below", group=grpVix)
+vixAggrMax   = input.float(28.0,  "Aggressive cap at or below", group=grpVix)
+vixBlockLt   = input.float(16.1, "Block ALL if VIX below", group=grpVix)
+
+grpGap = "Gap / OR quality"
+gapSkipPct   = input.float(3.0, "Gap skip day if |gap| % >=", group=grpGap)
+gapRetestPct = input.float(1.5, "Gap retest band lower %", group=grpGap)
+orSkipAtrPct = input.float(8.0, "Skip if OR width as % of daily ATR below", group=grpGap)
+orNormMinAtr = input.float(15.0, "Narrow OR upper band (% of ATR)", group=grpGap)
+orWideAtrPct = input.float(60.0, "Wide OR upper band (% of ATR)", group=grpGap)
+atrLen       = input.int(14, "Daily ATR length", group=grpGap)
+atrStopMult  = input.float(2.0, "Virtual hard stop ATR multiple", minval=0.5, step=0.1, group=grpGap)
+
+grpExit = "Virtual exit model"
+profitLockMult = input.float(1.2, "Profit-lock multiple", minval=1.0, step=0.05, group=grpExit)
+
+grpRisk = "Risk % model"
+riskPctMaxInput = input.float(0.10, "Risk % max cap (decimal)", minval=0.01, maxval=1.0, step=0.01, group=grpRisk)
+
+grpVis = "Display"
+showSignals     = input.bool(true, "Plot CALL/PUT setup markers", group=grpVis)
+firstSigPerDay  = input.bool(true, "Only first setup per calendar day", group=grpVis)
+warnWrongTf     = input.bool(true, "Orange tint if chart is not 5m", group=grpVis)
+showDiag        = input.bool(true, "Diagnostics table (last bar)", group=grpVis)
+showORShade     = input.bool(true, "Shade opening range build window", group=grpVis)
+showAtrBands    = input.bool(false, "Show ATR reference levels", group=grpVis)
+showLevels      = input.bool(true, "Show virtual entry/exit/profit-lock levels", group=grpVis)
+
+grpAlert = "Alerts"
+enableLongAlerts  = input.bool(false, "Create alert: CALL proxy setup", group=grpAlert)
+enableShortAlerts = input.bool(false, "Create alert: PUT proxy setup", group=grpAlert)
+enableExitAlerts  = input.bool(false, "Create alert: virtual exit", group=grpAlert)
+
+tz = "America/New_York"
+chartIs5m = timeframe.period == "5"
+
+f_orLevels(simple string mode) =>
+    hNY = hour(time, tz)
+    mNY = minute(time, tz)
+    tMin = hNY * 60 + mNY
+    inOR = mode == "research" ? (tMin >= (9 * 60 + 30) and tMin < (9 * 60 + 45)) : (tMin >= (9 * 60 + 30) and tMin <= (9 * 60 + 40))
+    var float oH = na
+    var float oL = na
+    var int oD = na
+    dayIdInner = dayofmonth(time, tz) + 100 * month(time, tz) + 10000 * year(time, tz)
+    if dayIdInner != oD
+        oD := dayIdInner
+        oH := na
+        oL := na
+    if inOR
+        oH := na(oH) ? high : math.max(oH, high)
+        oL := na(oL) ? low : math.min(oL, low)
+    [oH, oL]
+
+f_inOR5(simple string mode) =>
+    t = hour(time, tz) * 60 + minute(time, tz)
+    mode == "research" ? (t >= (9 * 60 + 30) and t < (9 * 60 + 45)) : (t >= (9 * 60 + 30) and t <= (9 * 60 + 40))
+
+dClose = request.security(syminfo.tickerid, "1D", close, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+dOpen  = request.security(syminfo.tickerid, "1D", open, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+dAtr   = request.security(syminfo.tickerid, "1D", ta.atr(atrLen), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+ema10d = request.security(syminfo.tickerid, "1D", ta.ema(close, 10), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+ema20d = request.security(syminfo.tickerid, "1D", ta.ema(close, 20), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+ema50d = request.security(syminfo.tickerid, "1D", ta.ema(close, 50), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+
+vixClose = request.security("CBOE:VIX", "1D", close, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+vixEff = na(vixClose) ? 18.0 : vixClose
+
+gapPct = na(dClose[1]) ? 0.0 : math.abs(dOpen - dClose[1]) / dClose[1] * 100.0
+
+vixRiskPct = vixEff < vixSkip ? 0.0 : vixEff <= vixHalfMax ? 0.05 : vixEff <= vixNormalMax ? 0.10 : vixEff <= vixAggrMax ? 0.10 : 0.05
+
+[orHigh, orLow] = request.security(syminfo.tickerid, "5", f_orLevels(backtestMode), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+orMid = (orHigh + orLow) / 2.0
+orWidth = na(orHigh) or na(orLow) ? na : orHigh - orLow
+orAtrPct = na(orWidth) or na(dAtr) or dAtr <= 0.0 ? na : orWidth / dAtr * 100.0
+orSizeFactor = na(orAtrPct) ? na : orAtrPct < orSkipAtrPct ? 0.0 : orAtrPct < orNormMinAtr ? 0.75 : orAtrPct <= orWideAtrPct ? 1.0 : 0.75
+
+retestRequired = gapPct >= gapRetestPct and gapPct < gapSkipPct
+tradeable = not na(vixRiskPct) and vixRiskPct > 0.0 and not na(orSizeFactor) and orSizeFactor > 0.0 and gapPct < gapSkipPct
+
+dailyReady = not na(ema10d) and not na(ema20d) and not na(ema50d) and not na(dClose)
+bullishTrend = dailyReady and ema10d > ema20d and dClose > ema50d
+
+tMin5 = request.security(syminfo.tickerid, "5", hour(time, tz) * 60 + minute(time, tz), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+inSignalWindow = tMin5 >= (9 * 60 + 45) and tMin5 <= (14 * 60 + 0)
+inOR5 = request.security(syminfo.tickerid, "5", f_inOR5(backtestMode), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+
+c5 = request.security(syminfo.tickerid, "5", close, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+c5_1 = request.security(syminfo.tickerid, "5", close[1], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+c5_2 = request.security(syminfo.tickerid, "5", close[2], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+low5 = request.security(syminfo.tickerid, "5", low, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+high5 = request.security(syminfo.tickerid, "5", high, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+low5_2 = request.security(syminfo.tickerid, "5", low[2], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+high5_2 = request.security(syminfo.tickerid, "5", high[2], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+
+orReady = not na(orHigh) and not na(orLow)
+longBreak = orReady and c5_1 > orHigh and c5 > orHigh
+shortBreak = orReady and c5_1 < orLow and c5 < orLow
+
+retestTol = 0.005
+longRetestOk = not retestRequired or low5_2 <= orHigh * (1.0 + retestTol)
+shortRetestOk = not retestRequired or high5_2 >= orLow * (1.0 - retestTol)
+
+liveLongOk = orReady and low5 >= orLow
+liveShortOk = orReady and high5 <= orHigh
+
+longSigResearch = longBreak and longRetestOk
+shortSigResearch = shortBreak and shortRetestOk
+longSigLive = longBreak and longRetestOk and liveLongOk
+shortSigLive = shortBreak and shortRetestOk and liveShortOk
+
+longSig = backtestMode == "research" ? longSigResearch : longSigLive
+shortSig = backtestMode == "research" ? shortSigResearch : shortSigLive
+
+blockVixLow = vixEff < vixBlockLt
+blockCallElevated = vixEff > vixNormalMax and vixEff <= vixAggrMax
+
+wantLongBase = tradeable and inSignalWindow and longSig and bullishTrend and not blockVixLow and not blockCallElevated
+wantShortBase = tradeable and inSignalWindow and shortSig and not bullishTrend and not blockVixLow
+riskPctMax = riskPctMaxInput
+riskPctRaw = vixRiskPct * (na(orSizeFactor) ? 0.0 : orSizeFactor)
+riskPctEff = math.min(riskPctRaw, riskPctMax)
+
+dayId = dayofmonth(time, tz) + 100 * month(time, tz) + 10000 * year(time, tz)
+
+var int lastSignalDayId = na
+// One marker per calendar day when firstSigPerDay: Fabio scans for first qualifying bar after OR.
+enteredToday = not na(lastSignalDayId) and lastSignalDayId == dayId
+longCandidate = wantLongBase and (not firstSigPerDay or not enteredToday)
+shortCandidate = wantShortBase and (not firstSigPerDay or not enteredToday)
+fireLong = longCandidate and not shortCandidate
+fireShort = shortCandidate and not longCandidate
+fireBoth = longCandidate and shortCandidate
+takeLong = firstSigPerDay ? (fireLong or fireBoth) : wantLongBase
+takeShort = firstSigPerDay ? fireShort : wantShortBase
+
+if firstSigPerDay and barstate.isconfirmed and (takeLong or takeShort)
+    lastSignalDayId := dayId
+
+plotLong = showSignals and takeLong and barstate.isconfirmed
+plotShort = showSignals and takeShort and barstate.isconfirmed
+
+plotshape(plotLong ? low : na, title="CALL proxy", style=shape.triangleup, location=location.belowbar, size=size.tiny, color=color.new(color.teal, 0), text="CALL", textcolor=color.new(color.teal, 0))
+plotshape(plotShort ? high : na, title="PUT proxy", style=shape.triangledown, location=location.abovebar, size=size.tiny, color=color.new(color.orange, 0), text="PUT", textcolor=color.new(color.orange, 0))
+
+// Virtual levels for entry / exits / profit lock (indicator only)
+c3 = request.security(syminfo.tickerid, "3", close, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+e10_3 = request.security(syminfo.tickerid, "3", ta.ema(close, 10), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+e20_3 = request.security(syminfo.tickerid, "3", ta.ema(close, 20), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+isEodBar3 = request.security(syminfo.tickerid, "3", hour(time, tz) > 15 or (hour(time, tz) == 15 and minute(time, tz) >= 45), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+midExitLong = c3 < orMid and c3[1] < orMid
+midExitShort = c3 > orMid and c3[1] > orMid
+emaXLong = e10_3[1] > e20_3[1] and e10_3 <= e20_3
+emaXShort = e10_3[1] < e20_3[1] and e10_3 >= e20_3
+
+var int vPos = 0
+var float vEntry = na
+var float vStop = na
+var float vProfitLock = na
+var bool vLocked = false
+var string vExitReason = ""
+newLong = plotLong and vPos == 0
+newShort = plotShort and vPos == 0 and not newLong
+if newLong
+    vPos := 1
+    vEntry := c5
+    vLocked := false
+    vExitReason := ""
+if newShort
+    vPos := -1
+    vEntry := c5
+    vLocked := false
+    vExitReason := ""
+
+if vPos != 0 and not na(vEntry)
+    atrStopDist = dAtr * atrStopMult
+    vStop := vPos > 0 ? vEntry - atrStopDist : vEntry + atrStopDist
+    lockMove = vEntry * (profitLockMult - 1.0) / 100.0
+    vProfitLock := vPos > 0 ? vEntry + lockMove : vEntry - lockMove
+    reachedLock = vPos > 0 ? c3 >= vProfitLock : c3 <= vProfitLock
+    if not vLocked and reachedLock
+        vLocked := true
+    hardExit = vPos > 0 ? c3 < vStop : c3 > vStop
+    stratExit = not vLocked and (vPos > 0 ? (midExitLong or emaXLong) : (midExitShort or emaXShort))
+    eodExit = isEodBar3
+    liveLockedRide = backtestMode == "live_mirror" and vLocked
+    allowHard = not liveLockedRide
+    doExit = (allowHard and hardExit) or stratExit or eodExit
+    if doExit
+        vExitReason := eodExit ? "EOD" : (allowHard and hardExit ? "2xATR" : "Mid/EMA")
+        vPos := 0
+        vEntry := na
+        vStop := na
+        vProfitLock := na
+        vLocked := false
+
+exitNow = (vExitReason != "") and barstate.isconfirmed
+plotshape(newLong ? low : na, title="Virtual entry long", style=shape.circle, location=location.belowbar, size=size.tiny, color=color.new(color.lime, 15), text="E", textcolor=color.new(color.lime, 0))
+plotshape(newShort ? high : na, title="Virtual entry short", style=shape.circle, location=location.abovebar, size=size.tiny, color=color.new(color.red, 15), text="E", textcolor=color.new(color.red, 0))
+plotshape(exitNow ? close : na, title="Virtual exit", style=shape.xcross, location=location.absolute, size=size.tiny, color=color.new(color.yellow, 0), text="X", textcolor=color.new(color.yellow, 0))
+if exitNow
+    vExitReason := ""
+
+plot(inOR5 ? orHigh : na, "OR high forming", color=color.new(color.teal, 82), linewidth=1, style=plot.style_linebr)
+plot(inOR5 ? orLow : na, "OR low forming", color=color.new(color.orange, 82), linewidth=1, style=plot.style_linebr)
+plot(not inOR5 and not na(orHigh) ? orHigh : na, "ORH", color=color.new(color.teal, 0), linewidth=2)
+plot(not inOR5 and not na(orLow) ? orLow : na, "ORL", color=color.new(color.orange, 0), linewidth=2)
+plot(not inOR5 and not na(orMid) ? orMid : na, "OR mid", color=color.new(color.gray, 35), linewidth=1, style=plot.style_line)
+
+orhPlusAtr = showAtrBands and not na(orHigh) and not na(dAtr) ? orHigh + dAtr : na
+orlMinusAtr = showAtrBands and not na(orLow) and not na(dAtr) ? orLow - dAtr : na
+midPlusAtr = showAtrBands and not na(orMid) and not na(dAtr) ? orMid + dAtr : na
+midMinusAtr = showAtrBands and not na(orMid) and not na(dAtr) ? orMid - dAtr : na
+plot(orhPlusAtr, "ORH + ATR", color=color.new(color.teal, 60), linewidth=1, style=plot.style_linebr)
+plot(orlMinusAtr, "ORL - ATR", color=color.new(color.orange, 60), linewidth=1, style=plot.style_linebr)
+plot(midPlusAtr, "ORMid + ATR", color=color.new(color.gray, 70), linewidth=1, style=plot.style_linebr)
+plot(midMinusAtr, "ORMid - ATR", color=color.new(color.gray, 70), linewidth=1, style=plot.style_linebr)
+
+entryLvlPlot = showLevels and vPos != 0 ? vEntry : na
+stopLvlPlot = showLevels and vPos != 0 ? vStop : na
+profitLvlPlot = showLevels and vPos != 0 ? vProfitLock : na
+midExitLvlPlot = showLevels and vPos != 0 ? orMid : na
+plot(entryLvlPlot, "Entry level", color=color.new(color.lime, 0), linewidth=2, style=plot.style_linebr)
+plot(stopLvlPlot, "2xATR stop level", color=color.new(color.red, 5), linewidth=2, style=plot.style_linebr)
+plot(profitLvlPlot, "Profit-lock level", color=color.new(color.aqua, 5), linewidth=2, style=plot.style_linebr)
+plot(midExitLvlPlot, "Mid exit level", color=color.new(color.yellow, 35), linewidth=1, style=plot.style_linebr)
+
+tMinChart = hour(time, tz) * 60 + minute(time, tz)
+bgCol = warnWrongTf and not chartIs5m ? color.new(color.orange, 88) : tradeable and inSignalWindow and chartIs5m ? color.new(color.green, 92) : not tradeable and tMinChart >= (9 * 60 + 30) and tMinChart < (16 * 60 + 0) ? color.new(color.red, 94) : na
+bgcolor(bgCol)
+bgcolor(showORShade and inOR5 ? color.new(color.teal, 90) : na)
+
+alertcondition(enableLongAlerts and plotLong, title="Fabio CALL proxy", message="Fabio ORB: CALL proxy setup (indicator)")
+alertcondition(enableShortAlerts and plotShort, title="Fabio PUT proxy", message="Fabio ORB: PUT proxy setup (indicator)")
+alertcondition(enableExitAlerts and exitNow, title="Fabio virtual exit", message="Fabio ORB: virtual exit trigger")
+
+var table diagTable = na
+if showDiag
+    if na(diagTable)
+        diagTable := table.new(position.top_right, 2, 17, bgcolor=color.new(chart.bg_color, 15), border_width=1, frame_color=color.gray)
+    if barstate.islast
+        table.cell(diagTable, 0, 0, "Check", text_color=color.gray, text_size=size.small)
+        table.cell(diagTable, 1, 0, "Value", text_color=color.gray, text_size=size.small)
+        table.cell(diagTable, 0, 1, "Chart TF", text_size=size.small)
+        table.cell(diagTable, 1, 1, timeframe.period, text_size=size.small, text_color=chartIs5m ? color.green : color.red)
+        table.cell(diagTable, 0, 2, "Need 5m", text_size=size.small)
+        table.cell(diagTable, 1, 2, chartIs5m ? "yes" : "no", text_size=size.small, text_color=chartIs5m ? color.green : color.red)
+        table.cell(diagTable, 0, 3, "tradeable", text_size=size.small)
+        table.cell(diagTable, 1, 3, str.tostring(tradeable), text_size=size.small, text_color=tradeable ? color.green : color.orange)
+        table.cell(diagTable, 0, 4, "VIX", text_size=size.small)
+        table.cell(diagTable, 1, 4, str.tostring(vixEff, "#.##"), text_size=size.small)
+        table.cell(diagTable, 0, 5, "block low VIX", text_size=size.small)
+        table.cell(diagTable, 1, 5, str.tostring(blockVixLow), text_size=size.small)
+        table.cell(diagTable, 0, 6, "block CALL band", text_size=size.small)
+        table.cell(diagTable, 1, 6, str.tostring(blockCallElevated), text_size=size.small)
+        table.cell(diagTable, 0, 7, "OR %ATR", text_size=size.small)
+        table.cell(diagTable, 1, 7, na(orAtrPct) ? "na" : str.tostring(orAtrPct, "#.#"), text_size=size.small)
+        table.cell(diagTable, 0, 8, "gap %", text_size=size.small)
+        table.cell(diagTable, 1, 8, str.tostring(gapPct, "#.###"), text_size=size.small)
+        table.cell(diagTable, 0, 9, "in 9:45–14 NY", text_size=size.small)
+        table.cell(diagTable, 1, 9, str.tostring(inSignalWindow), text_size=size.small)
+        table.cell(diagTable, 0, 10, "longSig/shortSig", text_size=size.small)
+        table.cell(diagTable, 1, 10, str.tostring(longSig) + "/" + str.tostring(shortSig), text_size=size.small)
+        table.cell(diagTable, 0, 11, "bullish trend", text_size=size.small)
+        table.cell(diagTable, 1, 11, str.tostring(bullishTrend), text_size=size.small)
+        table.cell(diagTable, 0, 12, "risk % raw/eff", text_size=size.small)
+        table.cell(diagTable, 1, 12, str.tostring(riskPctRaw * 100.0, "#.##") + "% / " + str.tostring(riskPctEff * 100.0, "#.##") + "%", text_size=size.small)
+        table.cell(diagTable, 0, 13, "vixRisk * orFactor", text_size=size.small)
+        table.cell(diagTable, 1, 13, str.tostring(vixRiskPct * 100.0, "#.##") + "% * " + (na(orSizeFactor) ? "na" : str.tostring(orSizeFactor, "#.##")), text_size=size.small)
+        table.cell(diagTable, 0, 14, "ATR stop multiple", text_size=size.small)
+        table.cell(diagTable, 1, 14, str.tostring(atrStopMult, "#.##") + "x", text_size=size.small)
+        table.cell(diagTable, 0, 15, "Profit-lock mult", text_size=size.small)
+        table.cell(diagTable, 1, 15, str.tostring(profitLockMult, "#.##") + "x", text_size=size.small)
+        table.cell(diagTable, 0, 16, "Risk max cap", text_size=size.small)
+        table.cell(diagTable, 1, 16, str.tostring(riskPctMax * 100.0, "#.##") + "%", text_size=size.small)
