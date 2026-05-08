@@ -121,6 +121,8 @@ def test_verify_gate_pass_and_fail_paths(monkeypatch, tmp_path: Path):
                 "max_age_min": 999999.0,
                 "allow_stale_data": False,
                 "max_queue_ratio": 0.95,
+                "sync_audit_jsonl": "",
+                "sync_audit_max_age_min": -1.0,
             },
         )(),
     )

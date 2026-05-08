@@ -8,7 +8,7 @@ Python backtest for a **Fabio / ORBit-style opening range breakout** strategy wi
 
 ## Requirements
 
-- **Python 3.10+** (the script uses modern type hints such as `str | None`).
+- **Python 3.10+** (the script uses modern type hints such as `str | None`). **GitHub Actions CI uses Python 3.11** — use **3.11** locally for the closest match to CI. On **3.13+**, some third-party libraries (e.g. protobuf via `moomoo-api`) may emit `DeprecationWarning` at import time; the test suite configures pytest to filter the known protobuf case only.
 - Install core dependencies (versions are **pinned** in `requirements.txt` for reproducibility):
 
 ```bash
@@ -27,7 +27,7 @@ pip install -r requirements.lock
 pip install -r requirements-optional.txt
 ```
 
-- Tests (optional):
+- Tests and dev tools (`requirements-dev.txt` **includes** core deps via `-r requirements.txt`; one install is enough for `pytest`):
 
 ```bash
 pip install -r requirements-dev.txt
@@ -465,10 +465,11 @@ tail -f audit_sync_scheduler.log
 Install/update dependencies:
 
 ```bash
-pip install -r requirements.txt
-pip install -r requirements-optional.txt
 pip install -r requirements-dev.txt
+pip install -r requirements-optional.txt
 ```
+
+(`requirements-dev.txt` pulls in `requirements.txt`; add `requirements-optional.txt` when using Sheets.)
 
 Syntax checks:
 
@@ -531,7 +532,7 @@ Use at your own risk. Verify all rules and parameters against your own trading p
   - `requirements.txt` (core runtime, pinned)
   - `requirements.lock` (full `pip freeze` after core install — optional stricter reproducibility)
   - `requirements-optional.txt` (Google Sheets extras, pinned)
-  - `requirements-dev.txt` (pytest for `tests/`, pinned)
+  - `requirements-dev.txt` (pytest, pre-commit, etc.; includes `requirements.txt` via `-r`)
 
 ## Architecture visual
 

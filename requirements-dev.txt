@@ -1,3 +1,5 @@
+# Core deps first (moomoo-api, etc.); then dev/CI tools.
+-r requirements.txt
 # Development / CI (optional)
 pytest==9.0.3
 pre-commit==3.8.0
