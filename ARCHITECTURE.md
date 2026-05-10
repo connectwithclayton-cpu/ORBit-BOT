@@ -8,7 +8,7 @@ Runtime session boundaries are evaluated in `America/New_York` and health snapsh
 
 ```mermaid
 flowchart TD
-    Scheduler["Launcher (manual or schedule)"] --> Entrypoint["orb_bot_fabio.py (runtime guard)"]
+    Scheduler["Launcher (manual or schedule)"] --> Entrypoint["backend/orb_bot_fabio.py (runtime guard)"]
     Entrypoint --> Bot["ORBBot (fabio_live/bot.py)"]
 
     Bot --> QuoteCtx["Moomoo Quote Context"]
@@ -24,9 +24,9 @@ flowchart TD
     Bot --> Orders["OrderManager (fabio_live/orders.py)"]
 
     Bot --> AsyncOps["AsyncOpsWorker (bounded queue, coalesce/drop)"]
-    AsyncOps --> Telegram["telegram_bot.py"]
-    AsyncOps --> Sheets["sheets_logger.py"]
-    AsyncOps --> Dashboard["dashboard_writer.py"]
+    AsyncOps --> Telegram["backend/telegram_bot.py"]
+    AsyncOps --> Sheets["frontend/sheets_logger.py"]
+    AsyncOps --> Dashboard["frontend/dashboard_writer.py"]
 
     Bot --> HealthSnap["Health Snapshot JSONL"]
     Bot --> StatusCmd["Telegram /status, /pause, /resume, /stop confirm"]

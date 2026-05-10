@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "channel": "beta",
+  "description": "Rolling beta milestones (newest first), max 3 rows — committed for audit. Update with: PYTHONPATH=backend:frontend python3 portal/record_beta_milestone.py",
+  "records": [
+    {
+      "recorded_at_utc": "2026-05-09T12:00:00Z",
+      "git_short": "df930ac",
+      "git_branch": "main",
+      "note": "Initial committed beta baseline (tie UI to git)"
+    }
+  ]
+}

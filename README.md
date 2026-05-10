@@ -1,10 +1,12 @@
 # Fabio ORB backtest
 
-[![Release channel — BETA](https://img.shields.io/badge/release-BETA-FFD740?logo=git&logoColor=black)](beta_manifest.json)
+[![Release channel — BETA](https://img.shields.io/badge/release-BETA-FFD740?logo=git&logoColor=black)](portal/beta_manifest.json)
 
-Python backtest for a **Fabio / ORBit-style opening range breakout** strategy with **0DTE-style options simulation** (Black–Scholes, fixed DTE, slippage, commissions). This repo also contains related **live** helpers (`orb_bot_fabio.py`, dashboard, logging); the main research entry point is `Fabio_orb_backtest.py`.
+Python backtest for a **Fabio / ORBit-style opening range breakout** strategy with **0DTE-style options simulation** (Black–Scholes, fixed DTE, slippage, commissions). This tree also contains related **live** helpers under `backend/` (entry `backend/orb_bot_fabio.py`), dashboard/Sheets under `frontend/`, and operators/publish tooling under `portal/`. The main research entry point is `backend/Fabio_orb_backtest.py`.
 
-**Beta tracking:** Channel is **BETA**. Committed milestones (rolling **last 3**) live in [`beta_manifest.json`](beta_manifest.json). The live dashboard and debug board show **BETA** plus the short `git` revision used at HTML generation time. Record a new milestone after meaningful changes: `python3 record_beta_milestone.py "optional note"`, then commit.
+**Layout:** `backend/` (engine, broker, tests), `frontend/` (`dashboard_writer.py`, `sheets_logger.py`, `debug_board_writer.py`), `portal/` (schedulers, `push_dashboard.sh`, `beta_manifest.json`, `docs/`). From `Fabio_bot/` run Python with `PYTHONPATH=backend:frontend` (set automatically in CI and in `pytest.ini` for tests).
+
+**Beta tracking:** Channel is **BETA**. Committed milestones (rolling **last 3**) live in [`portal/beta_manifest.json`](portal/beta_manifest.json). The live dashboard and debug board show **BETA** plus the short `git` revision used at HTML generation time. Record a new milestone after meaningful changes: `PYTHONPATH=backend:frontend python3 portal/record_beta_milestone.py "optional note"`, then commit.
 
 **Disclaimer:** Backtests are not predictions. Past results do not guarantee future performance. This is research tooling, not financial advice.
 
@@ -35,10 +37,32 @@ pip install -r requirements-optional.txt
 
 ```bash
 pip install -r requirements-dev.txt
-python3 -m pytest tests/ -v
+PYTHONPATH=backend:frontend python3 -m pytest backend/tests/ -v
 ```
 
 To **refresh** pins after upgrading packages: reinstall into a clean venv, run `pip freeze > requirements.lock`, and update `==` lines in `requirements.txt` / `requirements-optional.txt` / `requirements-dev.txt` for the packages you care about.
+
+### Post–EOD Moomoo fail-safe (broker flatten)
+
+This tree ships **`moomoo_eod_failsafe.py`** at the **same root** as `backend/` / `frontend/` / `portal/`. It is a **separate scheduled process** from the ORBit bot—run after your primary EOD close. Install pins with `requirements-moomoo.txt` (aligned with `requirements.txt` for `moomoo-api`).
+
+```bash
+pip install -r requirements-moomoo.txt
+python3 moomoo_eod_failsafe.py --dry-run
+python3 moomoo_eod_failsafe.py --dry-run --require-after-et
+```
+
+**Exit codes (`moomoo_eod_failsafe.py`):**
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success: empty book, nothing closable after filters, dry-run only, or live run with **no** failed `place_order` responses. |
+| `1` | Error: missing `moomoo` package, `zoneinfo` unavailable when using `--require-after-et`, missing live password, `unlock_trade` failed, initial `position_list_query` failed, or invalid `--security-firm`. |
+| `2` | **Invalid CLI** (Python `argparse`): unknown flag or bad argument value. |
+| `3` | Live run reached `run_complete` but **one or more** `place_order` calls failed; see logs or JSONL (`reason_code` / `run_partial_failure` event). |
+| `4` | Aborted: `--require-after-et` but current US/Eastern time is not a weekday after your cutoff (intentional guard). |
+
+Use `python3 moomoo_eod_failsafe.py --help` for full flags. Schedulers: alert on `1` or `3`; treat `4` as outside the ET window unless the schedule is wrong.
 
 ---
 
@@ -47,7 +71,7 @@ To **refresh** pins after upgrading packages: reinstall into a clean venv, run `
 From this directory:
 
 ```bash
-python Fabio_orb_backtest.py
+PYTHONPATH=backend:frontend python3 backend/Fabio_orb_backtest.py
 ```
 
 The script prints a summary to the console and writes CSVs and a chart (see [Outputs](#outputs)).
@@ -55,14 +79,14 @@ The script prints a summary to the console and writes CSVs and a chart (see [Out
 Pre-flight config check (recommended before live runs and in your pre-open ritual):
 
 ```bash
-python3 print_effective_config.py
+PYTHONPATH=backend:frontend python3 backend/print_effective_config.py
 ```
 
 If `MOOMOO_TRADE_ENV=REAL`, this script prints a **prominent warning** first; otherwise the sanity summary states SIMULATE.
 
 ### Modeled paper equity (Moomoo SIMULATE)
 
-Moomoo paper `total_assets` is often a large notional (e.g. \$1M). The live bot reads `accinfo_query` through `get_portfolio_value()` in [`fabio_live/market_data.py`](fabio_live/market_data.py) and, **in SIMULATE only** (unless you override), applies:
+Moomoo paper `total_assets` is often a large notional (e.g. \$1M). The live bot reads `accinfo_query` through `get_portfolio_value()` in [`backend/fabio_live/market_data.py`](backend/fabio_live/market_data.py) and, **in SIMULATE only** (unless you override), applies:
 
 `modeled_equity = FABIO_DISPLAY_EQUITY_START + (raw_total_assets − FABIO_MOOMOO_REFERENCE_EQUITY)`
 
@@ -81,20 +105,20 @@ Defaults: **\$10,000** modeled book vs **\$1,000,000** broker reference (equival
 
 ## Backtest runners
 
-- `Fabio_orb_backtest.py` — primary **research** backtest (source of truth). Uses `OpeningRangeStyle.RESEARCH` in the engine: OR = **09:30–09:44 ET** on **5-minute** bars (same definition as the **current** live bot in `fabio_live/regime.py`).
-- `Fabio_live_mirror_backtest.py` — **legacy live-mirror** backtest: uses `OpeningRangeStyle.LIVE_MIRROR` in `fabio/regime.py` (OR window **09:30–09:40 ET** on 5m data). This approximates an **older** live-bot OR definition; it does **not** match today’s live bot, which was aligned back to research.
-- `FabioOrb_copy_backtest.py` — compatibility wrapper alias to `Fabio_orb_backtest.py` (kept to avoid drift from duplicate code).
+- `backend/Fabio_orb_backtest.py` — primary **research** backtest (source of truth). Uses `OpeningRangeStyle.RESEARCH` in the engine: OR = **09:30–09:44 ET** on **5-minute** bars (same definition as the **current** live bot in `backend/fabio_live/regime.py`).
+- `backend/Fabio_live_mirror_backtest.py` — **legacy live-mirror** backtest: uses `OpeningRangeStyle.LIVE_MIRROR` in `backend/fabio/regime.py` (OR window **09:30–09:40 ET** on 5m data). This approximates an **older** live-bot OR definition; it does **not** match today’s live bot, which was aligned back to research.
+- `backend/FabioOrb_copy_backtest.py` — compatibility wrapper alias to `Fabio_orb_backtest.py` (kept to avoid drift from duplicate code).
 
 ---
 
 ## Data sources
 
-**Precedence (research runner `Fabio_orb_backtest.py` only):**
+**Precedence (research runner `backend/Fabio_orb_backtest.py` only):**
 
 1. `FabioBacktestSettings.from_env()` reads optional env `FABIO_DATA_SOURCE` (`polygon` or `yfinance`) into the config object.
-2. The module then runs **`_cfg.data_source = DATA_SOURCE`**, where `DATA_SOURCE` is the constant near the top of `Fabio_orb_backtest.py`.
+2. The module then runs **`_cfg.data_source = DATA_SOURCE`**, where `DATA_SOURCE` is the constant near the top of `backend/Fabio_orb_backtest.py`.
 
-So the **in-file `DATA_SOURCE` always wins** for that script. Env `FABIO_DATA_SOURCE` affects other callers of `FabioBacktestSettings.from_env()` (for example `print_effective_config.py` and live `fabio_live/constants.py`) but **not** the research backtest’s data source unless you change or remove the override in `Fabio_orb_backtest.py`.
+So the **in-file `DATA_SOURCE` always wins** for that script. Env `FABIO_DATA_SOURCE` affects other callers of `FabioBacktestSettings.from_env()` (for example `backend/print_effective_config.py` and live `backend/fabio_live/constants.py`) but **not** the research backtest’s data source unless you change or remove the override in `backend/Fabio_orb_backtest.py`.
 
 | Value | Behavior |
 |-------|----------|
@@ -135,7 +159,7 @@ Strategy tunables live in `fabio/settings.py` (`FabioBacktestSettings`) and are 
 
 `config.py` is integrations-only (Moomoo/Telegram/optional Google env values).
 
-**Data source:** Prefer editing `DATA_SOURCE` in `Fabio_orb_backtest.py` for the research backtest, or set `FABIO_DATA_SOURCE` in `.env` for tools that only call `from_env()` (see [Data sources](#data-sources)).
+**Data source:** Prefer editing `DATA_SOURCE` in `backend/Fabio_orb_backtest.py` for the research backtest, or set `FABIO_DATA_SOURCE` in `.env` for tools that only call `from_env()` (see [Data sources](#data-sources)).
 
 Primary strategy knobs:
 
@@ -201,13 +225,13 @@ Written to the **current working directory** when you run the script (usually th
 
 | File | Role |
 |------|------|
-| `orb_bot_fabio.py` | Live bot entrypoint (loads `.env`, runs `ORBBot`) |
-| `fabio_live/` | Live stack: `constants`, `market_data`, `regime`, `signals`, `orders`, `circuit`, `async_ops`, `bot` |
-| `config.py` | Shared configuration for live tooling |
-| `FabioOrb_copy_backtest.py` | Compatibility alias to canonical research backtest |
-| `Fabio_live_mirror_backtest.py` | Legacy live-mirror backtest (`BacktestMode.LIVE_MIRROR`) |
-| `dashboard_writer.py`, `live_dashboard.html` | Dashboard pipeline |
-| `telegram_bot.py`, `sheets_logger.py` | Notifications / logging |
+| `backend/orb_bot_fabio.py` | Live bot entrypoint (loads `.env`, runs `ORBBot`) |
+| `backend/fabio_live/` | Live stack: `constants`, `market_data`, `regime`, `signals`, `orders`, `circuit`, `async_ops`, `bot` |
+| `backend/config.py` | Shared configuration for live tooling |
+| `backend/FabioOrb_copy_backtest.py` | Compatibility alias to canonical research backtest |
+| `backend/Fabio_live_mirror_backtest.py` | Legacy live-mirror backtest (`BacktestMode.LIVE_MIRROR`) |
+| `frontend/dashboard_writer.py`, `live_dashboard.html` (project root) | Dashboard pipeline |
+| `backend/telegram_bot.py`, `frontend/sheets_logger.py` | Notifications / logging |
 
 ---
 
@@ -217,22 +241,25 @@ Written to the **current working directory** when you run the script (usually th
 
 ### Safety rails (run first)
 
-Set working directory:
+Set working directory to the **Fabio_bot** project root (examples):
 
 ```bash
 cd ~/Documents/TRADING/Fabio_bot
+# or, in this monorepo:
+# cd "/path/to/Cursor Projects/Fabio_bot"
+export PYTHONPATH=backend:frontend
 ```
 
 Quick environment sanity:
 
 ```bash
-python3 print_effective_config.py
+PYTHONPATH=backend:frontend python3 backend/print_effective_config.py
 ```
 
 Security-first env-file check (recommended):
 
 ```bash
-FABIO_ENV_FILE=/secure/path/fabio.env python3 print_effective_config.py
+FABIO_ENV_FILE=/secure/path/fabio.env PYTHONPATH=backend:frontend python3 backend/print_effective_config.py
 ```
 
 Verify key defaults are enabled before live execution:
@@ -250,7 +277,7 @@ PY
 Live bot (foreground/debug):
 
 ```bash
-python3 orb_bot_fabio.py
+PYTHONPATH=backend:frontend python3 backend/orb_bot_fabio.py
 ```
 
 Follow live bot log:
@@ -285,13 +312,13 @@ Rollback / reduce refresh pressure safely (no code changes):
 Reliability gate snapshot check:
 
 ```bash
-python3 verify_phase2_reliability.py
+PYTHONPATH=backend:frontend python3 backend/verify_phase2_reliability.py
 ```
 
 Debug board HTML (config + artifacts + log tail):
 
 ```bash
-python3 debug_board_writer.py
+PYTHONPATH=backend:frontend python3 frontend/debug_board_writer.py
 ```
 
 ### Data sync and canonical reconcile
@@ -299,8 +326,8 @@ python3 debug_board_writer.py
 Dry-run first, then publish canonical tabs and regenerate dashboard:
 
 ```bash
-python3 reconcile_moomoo_to_sheets.py --dry-run
-python3 reconcile_moomoo_to_sheets.py
+PYTHONPATH=backend:frontend python3 backend/reconcile_moomoo_to_sheets.py --dry-run
+PYTHONPATH=backend:frontend python3 backend/reconcile_moomoo_to_sheets.py
 ```
 
 Canonical outputs in Sheets:
@@ -309,7 +336,7 @@ Canonical outputs in Sheets:
 - `Open Inventory`
 
 Precedence notes:
-- **`--dry-run`** only prints intentions — it does **not** persist `trade_data.json`, dashboard HTML, or replace canonical tabs (see [docs/audit-runbook.md](docs/audit-runbook.md) publishing rule).
+- **`--dry-run`** only prints intentions — it does **not** persist `trade_data.json`, dashboard HTML, or replace canonical tabs (see [portal/docs/audit-runbook.md](portal/docs/audit-runbook.md) publishing rule).
 - Successful reconcile sets `trade_data.json -> open_positions` from FIFO/Open Inventory **after** broker vs FIFO inventory matches.
 - Bot-only EOD (without reconcile) sets open positions from Moomoo `position_list_query`.
 - `RECONCILE_MISMATCH` skips **both** dashboard persistence and canonical tab replaces until resolved.
@@ -317,13 +344,13 @@ Precedence notes:
 Full-history consistency check:
 
 ```bash
-python3 audit_full_positions.py
+PYTHONPATH=backend:frontend python3 backend/audit_full_positions.py
 ```
 
 Optional gate on the scheduled sync audit log:
 
 ```bash
-python3 verify_canonical_publish.py --jsonl audit_sync.jsonl --max-age-min 120
+PYTHONPATH=backend:frontend python3 backend/verify_canonical_publish.py --jsonl audit_sync.jsonl --max-age-min 120
 ```
 
 ### Startup paused: reconcile triage
@@ -355,27 +382,27 @@ On process start, `ORBBot` queries Moomoo open positions and may **pause new ent
 4. If you intentionally run with manual adoption only, set `FABIO_AUTO_ADOPT_OPEN_POSITIONS=0` knowing the bot **pauses** while orphans exist; otherwise keep `1` after validating broker data.
 5. `/resume` clears the pause flag and Telegram pause metadata but **does not fix** bad broker basis; restart after fixing data so startup adopt succeeds.
 
-See also: [docs/Morning-Audit.md](docs/Morning-Audit.md) (preflight + triage), [docs/audit-runbook.md](docs/audit-runbook.md) (broker vs Sheets inventory).
+See also: [portal/docs/Morning-Audit.md](portal/docs/Morning-Audit.md) (preflight + triage), [portal/docs/audit-runbook.md](portal/docs/audit-runbook.md) (broker vs Sheets inventory).
 
 ### Moomoo-authoritative sync audit
 
 Read-only audit checks (dry-run -> normal -> EOD):
 
 ```bash
-python3 scripts/audit_moomoo_sync.py --dry-run --lookback-min 180
-python3 scripts/audit_moomoo_sync.py --lookback-min 180
-python3 scripts/audit_moomoo_sync.py --eod --lookback-min 480
+PYTHONPATH=backend:frontend python3 backend/scripts/audit_moomoo_sync.py --dry-run --lookback-min 180
+PYTHONPATH=backend:frontend python3 backend/scripts/audit_moomoo_sync.py --lookback-min 180
+PYTHONPATH=backend:frontend python3 backend/scripts/audit_moomoo_sync.py --eod --lookback-min 480
 ```
 
 Summarize audit artifacts:
 
 ```bash
-bash scripts/summarize_audit_sync.sh audit_sync.jsonl
+bash backend/scripts/summarize_audit_sync.sh audit_sync.jsonl
 ```
 
 Sync audit references:
-- `docs/audit-sync-spec.md`
-- `docs/audit-runbook.md`
+- `portal/docs/audit-sync-spec.md`
+- `portal/docs/audit-runbook.md`
 
 ### EOD operational sequence (safe order)
 
@@ -383,17 +410,17 @@ Use this sequence after market-close workflows:
 
 ```bash
 # 1) Confirm bot health snapshot / no pressure issues
-python3 verify_phase2_reliability.py
+PYTHONPATH=backend:frontend python3 backend/verify_phase2_reliability.py
 
 # 2) Reconcile broker -> canonical tabs (dry-run then publish)
-python3 reconcile_moomoo_to_sheets.py --dry-run
-python3 reconcile_moomoo_to_sheets.py
+PYTHONPATH=backend:frontend python3 backend/reconcile_moomoo_to_sheets.py --dry-run
+PYTHONPATH=backend:frontend python3 backend/reconcile_moomoo_to_sheets.py
 
 # 3) Run EOD sync audit confirmation
-python3 scripts/audit_moomoo_sync.py --eod --lookback-min 480
+PYTHONPATH=backend:frontend python3 backend/scripts/audit_moomoo_sync.py --eod --lookback-min 480
 
 # 4) Review audit summary
-bash scripts/summarize_audit_sync.sh audit_sync.jsonl
+bash backend/scripts/summarize_audit_sync.sh audit_sync.jsonl
 ```
 
 ### Scheduler lifecycle (bot + sync audit)
@@ -401,13 +428,13 @@ bash scripts/summarize_audit_sync.sh audit_sync.jsonl
 Install bot weekday scheduler:
 
 ```bash
-bash install_fabio_scheduler.sh
+bash portal/install_fabio_scheduler.sh
 ```
 
 Install sync-audit schedulers (15m + EOD):
 
 ```bash
-bash install_sync_audit_scheduler.sh
+bash portal/install_sync_audit_scheduler.sh
 ```
 
 Verify launchd jobs are loaded:
@@ -422,8 +449,8 @@ Run scheduler smoke tests now (without waiting for trigger times):
 
 ```bash
 launchctl start com.claytonorb.fabio
-bash scripts/run_moomoo_sync_audit.sh
-bash scripts/run_moomoo_sync_audit.sh --eod
+bash backend/scripts/run_moomoo_sync_audit.sh
+bash backend/scripts/run_moomoo_sync_audit.sh --eod
 ```
 
 Uninstall schedulers:
@@ -445,7 +472,7 @@ pkill -f orb_bot_fabio.py
 Push dashboard to GitHub Pages (optional publish path):
 
 ```bash
-bash push_dashboard.sh
+bash portal/push_dashboard.sh
 ```
 
 ### Incident triage quick paths
@@ -453,9 +480,9 @@ bash push_dashboard.sh
 Reconcile mismatch investigation loop:
 
 ```bash
-python3 reconcile_moomoo_to_sheets.py --dry-run
-python3 scripts/audit_moomoo_sync.py --lookback-min 480 --dry-run
-bash scripts/summarize_audit_sync.sh audit_sync.jsonl
+PYTHONPATH=backend:frontend python3 backend/reconcile_moomoo_to_sheets.py --dry-run
+PYTHONPATH=backend:frontend python3 backend/scripts/audit_moomoo_sync.py --lookback-min 480 --dry-run
+bash backend/scripts/summarize_audit_sync.sh audit_sync.jsonl
 ```
 
 Tail scheduler/audit logs:
@@ -478,15 +505,15 @@ pip install -r requirements-optional.txt
 Syntax checks:
 
 ```bash
-python3 -m py_compile orb_bot_fabio.py
-python3 -m py_compile scripts/audit_moomoo_sync.py
+PYTHONPATH=backend:frontend python3 -m py_compile backend/orb_bot_fabio.py
+PYTHONPATH=backend:frontend python3 -m py_compile backend/scripts/audit_moomoo_sync.py
 ```
 
 Targeted tests and full tests:
 
 ```bash
-python3 -m pytest tests/test_audit_moomoo_sync.py -q
-python3 -m pytest tests/ -v
+PYTHONPATH=backend:frontend python3 -m pytest backend/tests/test_audit_moomoo_sync.py -q
+PYTHONPATH=backend:frontend python3 -m pytest backend/tests/ -v
 ```
 
 Secrets scan hooks:
@@ -525,8 +552,8 @@ Use at your own risk. Verify all rules and parameters against your own trading p
   pre-commit run --all-files
   ```
 - CI now enforces a secret scan (`.github/workflows/secret-scan.yml`) on push/PR.
-- If exposure is suspected, follow `SECURITY_RUNBOOK.md` immediately (revoke/rotate first, then verify scans).
-- Phase 2 architecture note for exit-timeframe parity is tracked in `PHASE2_EXIT_TIMEFRAME_DECISION.md`.
+- If exposure is suspected, follow [`portal/SECURITY_RUNBOOK.md`](portal/SECURITY_RUNBOOK.md) immediately (revoke/rotate first, then verify scans).
+- Phase 2 architecture note for exit-timeframe parity is tracked in [`portal/PHASE2_EXIT_TIMEFRAME_DECISION.md`](portal/PHASE2_EXIT_TIMEFRAME_DECISION.md).
 - Keep plaintext secrets out of this directory; use `.env.example` and `FABIO_ENV_FILE` for externalized secret paths.
 - Runtime telemetry retention:
   - `bot_health_snapshots.jsonl` is local-only and auto-pruned to recent history by the bot.
