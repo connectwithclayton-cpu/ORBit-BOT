@@ -1,7 +1,7 @@
 # --- Secrets and credential material (never public) ---
 .env
 .env.*
-!.env.example
+!portal/.env.example
 .envrc
 fabio.env
 *.local

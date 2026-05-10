@@ -6,7 +6,9 @@
 
 Python backtest for a **Fabio / ORBit-style opening range breakout** strategy with **0DTE-style options simulation** (Black–Scholes, fixed DTE, slippage, commissions). This tree also contains related **live** helpers under `backend/` (entry `backend/orb_bot_fabio.py`), dashboard/Sheets under `frontend/`, and operators/publish tooling under `portal/`. The main research entry point is `backend/Fabio_orb_backtest.py`.
 
-**Layout:** `backend/` (engine, broker, tests), `frontend/` (`dashboard_writer.py`, `sheets_logger.py`, `debug_board_writer.py`), `portal/` (schedulers, `push_dashboard.sh`, `beta_manifest.json`, `docs/`). From `Fabio_bot/` run Python with `PYTHONPATH=backend:frontend` (set automatically in CI and in `pytest.ini` for tests).
+**Layout:** `backend/` (engine, broker, tests, `moomoo_eod_failsafe.py`, `requirements*.txt`, `pytest.ini`), `frontend/` (`dashboard_writer.py`, `sheets_logger.py`, `debug_board_writer.py`), `portal/` (schedulers, `push_dashboard.sh`, `beta_manifest.json`, `docs/`, `.env.example`, `tooling/` for pre-commit + detect-secrets baseline). From `Fabio_bot/` run Python with `PYTHONPATH=backend:frontend` (set automatically in CI and in `backend/pytest.ini` for tests).
+
+**Root files outside those folders:** `README.md` (this file), machine-local **`.env`** (gitignored), **`.gitignore`**, and **`.github/`** (CI workflows — GitHub requires this path at the repo root).
 
 **Beta tracking:** Channel is **BETA**. Committed milestones (rolling **last 3**) live in [`portal/beta_manifest.json`](portal/beta_manifest.json). The live dashboard and debug board show **BETA** plus the short `git` revision used at HTML generation time. Record a new milestone after meaningful changes: `PYTHONPATH=backend:frontend python3 portal/record_beta_milestone.py "optional note"`, then commit.
 
@@ -17,44 +19,44 @@ Python backtest for a **Fabio / ORBit-style opening range breakout** strategy wi
 ## Requirements
 
 - **Python 3.10+** (the script uses modern type hints such as `str | None`). **GitHub Actions CI uses Python 3.11** — use **3.11** locally for the closest match to CI. On **3.13+**, some third-party libraries (e.g. protobuf via `moomoo-api`) may emit `DeprecationWarning` at import time; the test suite configures pytest to filter the known protobuf case only.
-- Install core dependencies (versions are **pinned** in `requirements.txt` for reproducibility):
+- Install core dependencies (versions are **pinned** in `backend/requirements.txt` for reproducibility):
 
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
 - For an **exact** transitive snapshot (as produced by `pip freeze` after installing core deps), use:
 
 ```bash
-pip install -r requirements.lock
+pip install -r backend/requirements.lock
 ```
 
 - Optional integrations (Google Sheets logging):
 
 ```bash
-pip install -r requirements-optional.txt
+pip install -r backend/requirements-optional.txt
 ```
 
-- Tests and dev tools (`requirements-dev.txt` **includes** core deps via `-r requirements.txt`; one install is enough for `pytest`):
+- Tests and dev tools (`backend/requirements-dev.txt` **includes** core deps via `-r requirements.txt`; one install is enough for `pytest`):
 
 ```bash
-pip install -r requirements-dev.txt
-PYTHONPATH=backend:frontend python3 -m pytest backend/tests/ -v
+pip install -r backend/requirements-dev.txt
+PYTHONPATH=backend:frontend python3 -m pytest -c backend/pytest.ini backend/tests/ -v
 ```
 
-To **refresh** pins after upgrading packages: reinstall into a clean venv, run `pip freeze > requirements.lock`, and update `==` lines in `requirements.txt` / `requirements-optional.txt` / `requirements-dev.txt` for the packages you care about.
+To **refresh** pins after upgrading packages: reinstall into a clean venv, run `pip freeze > backend/requirements.lock`, and update `==` lines in `backend/requirements.txt` / `backend/requirements-optional.txt` / `backend/requirements-dev.txt` for the packages you care about.
 
 ### Post–EOD Moomoo fail-safe (broker flatten)
 
-This tree ships **`moomoo_eod_failsafe.py`** at the **same root** as `backend/` / `frontend/` / `portal/`. It is a **separate scheduled process** from the ORBit bot—run after your primary EOD close. Install pins with `requirements-moomoo.txt` (aligned with `requirements.txt` for `moomoo-api`).
+This tree ships **`backend/moomoo_eod_failsafe.py`**. It is a **separate scheduled process** from the ORBit bot—run after your primary EOD close. Install pins with `backend/requirements-moomoo.txt` (aligned with `backend/requirements.txt` for `moomoo-api`).
 
 ```bash
-pip install -r requirements-moomoo.txt
-python3 moomoo_eod_failsafe.py --dry-run
-python3 moomoo_eod_failsafe.py --dry-run --require-after-et
+pip install -r backend/requirements-moomoo.txt
+python3 backend/moomoo_eod_failsafe.py --dry-run
+python3 backend/moomoo_eod_failsafe.py --dry-run --require-after-et
 ```
 
-**Exit codes (`moomoo_eod_failsafe.py`):**
+**Exit codes (`backend/moomoo_eod_failsafe.py`):**
 
 | Code | Meaning |
 |------|---------|
@@ -64,7 +66,7 @@ python3 moomoo_eod_failsafe.py --dry-run --require-after-et
 | `3` | Live run reached `run_complete` but **one or more** `place_order` calls failed; see logs or JSONL (`reason_code` / `run_partial_failure` event). |
 | `4` | Aborted: `--require-after-et` but current US/Eastern time is not a weekday after your cutoff (intentional guard). |
 
-Use `python3 moomoo_eod_failsafe.py --help` for full flags. Schedulers: alert on `1` or `3`; treat `4` as outside the ET window unless the schedule is wrong.
+Use `python3 backend/moomoo_eod_failsafe.py --help` for full flags. Schedulers: alert on `1` or `3`; treat `4` as outside the ET window unless the schedule is wrong.
 
 ---
 
@@ -133,7 +135,7 @@ If the effective source is `polygon` but no API key is set, the loader **falls b
 
 ## Environment (Polygon)
 
-Use `.env.example` as a template and prefer storing real secrets outside the repo tree.
+Use [`portal/.env.example`](portal/.env.example) as a template and prefer storing real secrets outside the repo tree.
 
 - Preferred: set `FABIO_ENV_FILE=/secure/path/fabio.env` and keep that file outside this project.
 - Legacy fallback: `Fabio_bot/.env` is still supported for local compatibility, but not recommended.
@@ -498,11 +500,11 @@ tail -f audit_sync_scheduler.log
 Install/update dependencies:
 
 ```bash
-pip install -r requirements-dev.txt
-pip install -r requirements-optional.txt
+pip install -r backend/requirements-dev.txt
+pip install -r backend/requirements-optional.txt
 ```
 
-(`requirements-dev.txt` pulls in `requirements.txt`; add `requirements-optional.txt` when using Sheets.)
+(`backend/requirements-dev.txt` pulls in `requirements.txt`; add `backend/requirements-optional.txt` when using Sheets.)
 
 Syntax checks:
 
@@ -514,15 +516,15 @@ PYTHONPATH=backend:frontend python3 -m py_compile backend/scripts/audit_moomoo_s
 Targeted tests and full tests:
 
 ```bash
-PYTHONPATH=backend:frontend python3 -m pytest backend/tests/test_audit_moomoo_sync.py -q
-PYTHONPATH=backend:frontend python3 -m pytest backend/tests/ -v
+PYTHONPATH=backend:frontend python3 -m pytest -c backend/pytest.ini backend/tests/test_audit_moomoo_sync.py -q
+PYTHONPATH=backend:frontend python3 -m pytest -c backend/pytest.ini backend/tests/ -v
 ```
 
 Secrets scan hooks:
 
 ```bash
-pre-commit install
-pre-commit run --all-files
+pre-commit install -c portal/tooling/pre-commit-config.yaml
+pre-commit run -c portal/tooling/pre-commit-config.yaml --all-files
 ```
 
 **Note:** launchd jobs run with minimal environment (`PATH=/usr/bin:/bin:/usr/sbin:/sbin`). Keep interpreter paths and env assumptions explicit.
@@ -531,7 +533,7 @@ pre-commit run --all-files
 
 ## Troubleshooting
 
-- **`No matching distribution for moomoo`:** The PyPI package is **`moomoo-api`** (`import moomoo` unchanged). Use `requirements.txt` as written.
+- **`No matching distribution for moomoo`:** The PyPI package is **`moomoo-api`** (`import moomoo` unchanged). Use `backend/requirements.txt` as written.
 - **`yfinance not found`:** Run the `pip install` line above.
 - **Polygon rate limits / slow runs:** The script sleeps between paginated requests (`POLYGON_SLEEP_SEC`). Expect long runs for multi-symbol, multi-year history.
 - **No trades:** Tighten filters in CONFIG, shorten the date range, or confirm data loaded (empty intraday → no signals).
@@ -549,23 +551,23 @@ Use at your own risk. Verify all rules and parameters against your own trading p
 - **Before your first `git commit`:** run `git init` (if needed), then `git status` and confirm nothing sensitive or machine-local appears (e.g. `trade_data.json`, logs). Add patterns to `.gitignore` if you introduce new local-only stores.
 - Install local secret scanning hooks:
   ```bash
-  pip install -r requirements-dev.txt
-  pre-commit install
-  pre-commit run --all-files
+  pip install -r backend/requirements-dev.txt
+  pre-commit install -c portal/tooling/pre-commit-config.yaml
+  pre-commit run -c portal/tooling/pre-commit-config.yaml --all-files
   ```
 - CI now enforces a secret scan (`.github/workflows/secret-scan.yml`) on push/PR.
 - If exposure is suspected, follow [`portal/SECURITY_RUNBOOK.md`](portal/SECURITY_RUNBOOK.md) immediately (revoke/rotate first, then verify scans).
 - Phase 2 architecture note for exit-timeframe parity is tracked in [`portal/PHASE2_EXIT_TIMEFRAME_DECISION.md`](portal/PHASE2_EXIT_TIMEFRAME_DECISION.md).
-- Keep plaintext secrets out of this directory; use `.env.example` and `FABIO_ENV_FILE` for externalized secret paths.
+- Keep plaintext secrets out of this directory; use `portal/.env.example` and `FABIO_ENV_FILE` for externalized secret paths.
 - Runtime telemetry retention:
   - `bot_health_snapshots.jsonl` is local-only and auto-pruned to recent history by the bot.
   - Keep logs/artifacts local and rotate/delete older operational files on a schedule.
 - If you need Google Sheets setup docs, check `../orb_bot/GOOGLE_SETUP.md` from this folder path.
-- Dependency files:
-  - `requirements.txt` (core runtime, pinned)
-  - `requirements.lock` (full `pip freeze` after core install — optional stricter reproducibility)
-  - `requirements-optional.txt` (Google Sheets extras, pinned)
-  - `requirements-dev.txt` (pytest, pre-commit, etc.; includes `requirements.txt` via `-r`)
+- Dependency files (under `backend/`):
+  - `backend/requirements.txt` (core runtime, pinned)
+  - `backend/requirements.lock` (full `pip freeze` after core install — optional stricter reproducibility)
+  - `backend/requirements-optional.txt` (Google Sheets extras, pinned)
+  - `backend/requirements-dev.txt` (pytest, pre-commit, etc.; includes `requirements.txt` via `-r`)
 
 ## Architecture visual
 

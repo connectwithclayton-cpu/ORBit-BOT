@@ -125,7 +125,7 @@ def main() -> None:
     if len(key) < 10:
         raise SystemExit(
             "POLYGON_API_KEY is missing or too short. Set it in the environment or "
-            "Fabio_bot/.env (see .env.example)."
+            "Fabio_bot/.env (see portal/.env.example)."
         )
 
     base = "https://api.polygon.io"

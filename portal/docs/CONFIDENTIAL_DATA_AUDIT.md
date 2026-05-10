@@ -11,6 +11,6 @@ This audit lists what **must not** appear in a public repository. Patterns are e
 | Generated outputs | `results/`, `Fabio_backtest_*.csv`, `*.png` backtest charts, `*_dashboard.html` | Proprietary results; clutter |
 | Tooling | `__pycache__/`, `.venv/`, `.pytest_cache/` | Noise |
 
-**Safe to commit:** `.env.example` (placeholders only), `.secrets.baseline` (detect-secrets hashes), `requirements*.txt` / lockfiles, source under `backend/`, `frontend/`, `portal/`.
+**Safe to commit:** `portal/.env.example` (placeholders only), `portal/tooling/.secrets.baseline` (detect-secrets hashes), `backend/requirements*.txt` / `backend/requirements.lock`, source under `backend/`, `frontend/`, `portal/`.
 
 **Verify before push:** `git ls-files` must not list `.env` or credential JSON; use `git check-ignore -v <path>` for probes. If a secret was ever committed, rotate the credential and rewrite Git history (see `portal/SECURITY_RUNBOOK.md`).

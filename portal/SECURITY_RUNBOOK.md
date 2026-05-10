@@ -38,7 +38,7 @@ Execute this runbook immediately if any of the following occur:
 
 1. Ensure `.gitignore` still excludes secret files and key material.
 2. Run secret scan locally:
-   - `pre-commit run --all-files`
+   - `pre-commit run -c portal/tooling/pre-commit-config.yaml --all-files`
 3. Confirm CI secret scan passes on PR/push.
 4. If a secret was committed in history, rewrite history and rotate again.
 

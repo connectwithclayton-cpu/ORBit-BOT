@@ -10,7 +10,7 @@ then submits market orders to flatten matching rows.
 
 Prerequisites:
   - OpenD running and logged in (same machine or reachable host/port).
-  - pip install -r requirements-moomoo.txt
+  - pip install -r backend/requirements-moomoo.txt (from Fabio_bot root)
   - For live: MOOMOO_TRADE_PASSWORD (or --password) to unlock trading once per run.
 
 Default scope is US-style *listed options* only (OCC-style symbol with yymmdd + C/P).
@@ -265,7 +265,10 @@ def main() -> int:
             return 4
 
     if OpenSecTradeContext is None:
-        print("ERROR: moomoo package not installed. pip install -r requirements-moomoo.txt", file=sys.stderr)
+        print(
+            "ERROR: moomoo package not installed. pip install -r backend/requirements-moomoo.txt",
+            file=sys.stderr,
+        )
         return 1
 
     trd_env = TrdEnv.REAL if args.trd_env == "REAL" else TrdEnv.SIMULATE
