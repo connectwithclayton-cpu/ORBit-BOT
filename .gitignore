@@ -67,6 +67,9 @@ coverage.xml
 venv/
 ENV/
 
+# --- Local educational / large binaries (keep out of Git) ---
+Fabio_ORB_Backtest_Rules_Educational.pdf
+
 # --- OS and editors ---
 .DS_Store
 .idea/

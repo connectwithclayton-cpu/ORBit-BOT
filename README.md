@@ -237,7 +237,7 @@ Written to the **current working directory** when you run the script (usually th
 | `frontend/dashboard_writer.py`, `backend/trade_data.json`, `frontend/live_dashboard.html` | Dashboard pipeline |
 | `backend/telegram_bot.py`, `frontend/sheets_logger.py` | Notifications / logging |
 
-If you still have a **legacy** `trade_data.json` at the **Fabio_bot root** (older layout), move or merge it into **`backend/trade_data.json`** so `dashboard_writer`, `reconcile_moomoo_to_sheets`, and `verify_trades` all read the same file.
+Persistent dashboard/trade JSON lives only at **`backend/trade_data.json`** (`dashboard_writer`, `reconcile_moomoo_to_sheets`, `verify_trades`).
 
 ---
 
