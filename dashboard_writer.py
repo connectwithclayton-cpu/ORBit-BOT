@@ -481,6 +481,11 @@ header {
   background: rgba(0,230,118,0.12); color: var(--green);
   border: 1px solid rgba(0,230,118,0.25);
 }
+.badge-beta {
+  background: rgba(255, 215, 64, 0.10);
+  color: #ffd740;
+  border-color: rgba(255, 215, 64, 0.35);
+}
 .header-btn {
   display: inline-block; padding: 2px 9px; border-radius: 4px;
   font-size: 11px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase;
@@ -1074,8 +1079,10 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   </div>
     <div class="header-right">
     <div class="header-top-row" style="margin-bottom:6px">
+      <span class="badge badge-beta" id="betaBadge" title="Beta channel — see beta_manifest.json in repo">BETA</span>
       <span class="badge">PAPER TRADING</span>
     </div>
+    <div class="header-git-meta mono" id="betaGitMeta" style="font-size:11px;color:var(--muted);margin-bottom:6px;text-align:right"></div>
     <div class="header-updated">Last updated: <span id="lastUpdated">—</span></div>
   </div>
 </header>
@@ -1392,6 +1399,24 @@ const DATA = __DATA_JSON__;
 const trades = DATA.trades || [];
 const openPositions = DATA.open_positions || [];
 const daily  = (DATA.daily || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+
+(function initBetaBadge() {
+  const b = DATA.beta_identity;
+  if (!b) return;
+  const badge = document.getElementById('betaBadge');
+  const meta = document.getElementById('betaGitMeta');
+  if (badge && b.badge_label) badge.textContent = b.badge_label;
+  if (meta) {
+    const parts = [];
+    if (b.running_branch) parts.push(b.running_branch);
+    if (b.running_dirty) parts.push('dirty');
+    const recs = b.manifest_records || [];
+    if (recs.length) {
+      parts.push('manifest: ' + recs.map(function (r) { return r.git_short || '?'; }).join(' → '));
+    }
+    meta.textContent = parts.join(' · ');
+  }
+})();
 
 (function initRulesModal() {
   const btn = document.getElementById('rulesBtn');
@@ -2621,6 +2646,12 @@ class DashboardWriter:
             _eq_sub = modeled_equity_dashboard_subtitle()
         except ImportError:
             _eq_sub = None
+        try:
+            from fabio_beta_identity import beta_identity_payload
+
+            _beta = beta_identity_payload()
+        except ImportError:
+            _beta = None
         buy_hold_overlay = _build_buy_hold_overlay_from_daily(
             list(self._data.get("daily") or [])
         )
@@ -2628,6 +2659,7 @@ class DashboardWriter:
             **self._data,
             "equity_modeled_subtitle": _eq_sub,
             "buy_hold_overlay": buy_hold_overlay,
+            "beta_identity": _beta,
         }
         data_json = json.dumps(html_payload, default=str)
         html      = _TEMPLATE.replace("__DATA_JSON__", data_json)

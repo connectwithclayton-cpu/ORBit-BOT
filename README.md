@@ -1,6 +1,10 @@
 # Fabio ORB backtest
 
+[![Release channel — BETA](https://img.shields.io/badge/release-BETA-FFD740?logo=git&logoColor=black)](beta_manifest.json)
+
 Python backtest for a **Fabio / ORBit-style opening range breakout** strategy with **0DTE-style options simulation** (Black–Scholes, fixed DTE, slippage, commissions). This repo also contains related **live** helpers (`orb_bot_fabio.py`, dashboard, logging); the main research entry point is `Fabio_orb_backtest.py`.
+
+**Beta tracking:** Channel is **BETA**. Committed milestones (rolling **last 3**) live in [`beta_manifest.json`](beta_manifest.json). The live dashboard and debug board show **BETA** plus the short `git` revision used at HTML generation time. Record a new milestone after meaningful changes: `python3 record_beta_milestone.py "optional note"`, then commit.
 
 **Disclaimer:** Backtests are not predictions. Past results do not guarantee future performance. This is research tooling, not financial advice.
 

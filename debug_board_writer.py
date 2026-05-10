@@ -139,9 +139,18 @@ def _collect_payload() -> dict:
         except Exception as e:
             log_tail = [f"(read error: {e})"]
 
+    beta_payload = None
+    try:
+        from fabio_beta_identity import beta_identity_payload
+
+        beta_payload = beta_identity_payload(_BASE)
+    except ImportError:
+        pass
+
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
         "git_rev": _git_rev(),
+        "beta_identity": beta_payload,
         "config_error": cfg_err,
         "env": env_snapshot,
         "fabio_settings": config_block,
@@ -253,7 +262,7 @@ ul.cli code {
 <body>
 <header>
   <h1>Fabio debug board</h1>
-  <span class="badge">DEV</span>
+  <span class="badge" id="betaBadge" title="Beta — see beta_manifest.json">BETA</span>
   <span class="meta" id="hdr-meta"></span>
 </header>
 <div class="page">
@@ -297,8 +306,15 @@ ul.cli code {
 const DATA = JSON.parse(document.getElementById('fabio-debug-json').textContent);
 
 (function () {
+  (function () {
+    const b = DATA.beta_identity;
+    const badge = document.getElementById('betaBadge');
+    if (badge && b && b.badge_label) badge.textContent = b.badge_label;
+  })();
   document.getElementById('hdr-meta').textContent =
-    'Generated ' + DATA.generated_at + ' · git ' + DATA.git_rev;
+    'Generated ' + DATA.generated_at + ' · git ' + DATA.git_rev
+    + (DATA.beta_identity && DATA.beta_identity.running_branch
+      ? ' · ' + DATA.beta_identity.running_branch : '');
 
   if (DATA.config_error) {
     document.getElementById('sec-err').style.display = 'block';
