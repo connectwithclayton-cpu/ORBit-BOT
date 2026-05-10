@@ -569,5 +569,5 @@ Use at your own risk. Verify all rules and parameters against your own trading p
 
 ## Architecture visual
 
-- See `ARCHITECTURE.md` for the system architecture and trading-day workflow diagrams.
+- See [portal/docs/ARCHITECTURE.md](portal/docs/ARCHITECTURE.md) for the system architecture and trading-day workflow diagrams.
 - Runtime sessions are evaluated in `America/New_York`; keep host clock synchronized.

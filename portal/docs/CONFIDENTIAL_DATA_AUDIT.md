@@ -1,6 +1,6 @@
 # Confidential and local-only data (ORBit / public GitHub)
 
-This audit lists what **must not** appear in a public repository. Patterns are enforced in [`.gitignore`](../.gitignore) at the Fabio tree root (same paths when this folder is the Git repo root, e.g. on ORBit).
+This audit lists what **must not** appear in a public repository. Patterns are enforced in [`.gitignore`](../../.gitignore) at the Fabio tree root (same paths when this folder is the Git repo root, e.g. on ORBit).
 
 | Category | Examples | Risk |
 |----------|----------|------|
