@@ -6,7 +6,7 @@ import time
 
 import pandas as pd
 
-from fabio.settings import FabioBacktestSettings
+from .settings import FabioBacktestSettings
 
 
 class FabioDataLoader:

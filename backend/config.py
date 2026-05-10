@@ -1,7 +1,7 @@
 """
 config.py — integrations and credentials only.
 
-Strategy/risk parameters live in `fabio/settings.py` (FabioBacktestSettings),
+Strategy/risk parameters live in `backtest/fabio/settings.py` (FabioBacktestSettings),
 which is shared by backtests and live bot logic.
 """
 

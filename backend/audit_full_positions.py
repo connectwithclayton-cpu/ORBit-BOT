@@ -3,7 +3,7 @@
 Full reconciliation audit — Moomoo SIMULATE vs Sheets canonical tabs and dashboard.
 
 Expected artifacts match `reconcile_moomoo_to_sheets` (FIFO + operator omissions in
-`manual_position_omissions.py`). Broker history still lists fills for omitted
+`frontend/manual_position_omissions.py`). Broker history still lists fills for omitted
 round-trips; they must NOT appear on Broker Fills (effective set), Reconciled
 Trades, or reconciled-derived dashboard closes.
 

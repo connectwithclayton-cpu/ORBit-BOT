@@ -7,7 +7,7 @@ import math
 import numpy as np
 import pandas as pd
 
-from fabio.settings import FabioBacktestSettings
+from .settings import FabioBacktestSettings
 
 
 def compute_stats(

@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from fabio.engine import BacktestMode, FabioBacktestEngine
-from fabio.reporting import compute_stats
-from fabio.run_outputs import resolve_output_paths, write_run_metadata
-from fabio.settings import FabioBacktestSettings
+from backtest.fabio.engine import BacktestMode, FabioBacktestEngine
+from backtest.fabio.reporting import compute_stats
+from backtest.fabio.run_outputs import resolve_output_paths, write_run_metadata
+from backtest.fabio.settings import FabioBacktestSettings
 
 
 def _daily_with_current_session(day: str = "2026-05-07") -> pd.DataFrame:
@@ -57,7 +57,7 @@ def _intraday_3m(day: str = "2026-05-07") -> pd.DataFrame:
 
 
 def test_engine_uses_prior_daily_and_prior_vix_for_intraday_decisions(monkeypatch):
-    from fabio import engine as eng
+    from backtest.fabio import engine as eng
 
     seen: dict[str, object] = {}
 
@@ -151,7 +151,7 @@ def test_existing_root_outputs_are_diverted_to_run_directory(tmp_path: Path):
 
 
 def test_open_position_cap_blocks_overlapping_entries(monkeypatch):
-    from fabio import engine as eng
+    from backtest.fabio import engine as eng
 
     class TradeableRegime:
         def __init__(self, _cfg, symbol, *_args, **_kwargs):
@@ -195,7 +195,7 @@ def test_open_position_cap_blocks_overlapping_entries(monkeypatch):
 
 
 def test_later_entry_sizing_uses_earlier_same_day_realized_pnl(monkeypatch):
-    from fabio import engine as eng
+    from backtest.fabio import engine as eng
 
     class TradeableRegime:
         def __init__(self, _cfg, symbol, *_args, **_kwargs):

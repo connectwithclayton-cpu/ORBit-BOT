@@ -6,7 +6,7 @@ Usage:
     python debug_board_writer.py
 
 Outputs:
-    ~/Documents/TRADING/Fabio_bot/Fabio_debug_board.html
+    Fabio_bot/frontend/Fabio_debug_board.html  (repo-local)
     ~/Documents/TRADING/Fabio_debug_board.html  (convenience copy)
 """
 
@@ -22,7 +22,7 @@ from pathlib import Path
 _FABIO_ROOT = Path(__file__).resolve().parent.parent
 _BACKEND = _FABIO_ROOT / "backend"
 _TRADING = Path.home() / "Documents" / "TRADING"
-_OUT_LOCAL = _FABIO_ROOT / "Fabio_debug_board.html"
+_OUT_LOCAL = _FABIO_ROOT / "frontend" / "Fabio_debug_board.html"
 _OUT_MAIN = _TRADING / "Fabio_debug_board.html"
 
 _ARTIFACTS = [
@@ -32,7 +32,7 @@ _ARTIFACTS = [
     "Fabio_live_mirror_trades.csv",
     "Fabio_live_mirror_equity.csv",
     "Fabio_live_mirror_report.png",
-    "trade_data.json",
+    "backend/trade_data.json",
     "orb_bot_fabio.log",
     "dashboard_push.log",
 ]
@@ -66,7 +66,7 @@ def _collect_payload() -> dict:
     if bp not in sys.path:
         sys.path.insert(0, bp)
     try:
-        from fabio.settings import FabioBacktestSettings
+        from backtest.fabio.settings import FabioBacktestSettings
 
         cfg = FabioBacktestSettings.from_env()
     except Exception as e:
@@ -77,7 +77,7 @@ def _collect_payload() -> dict:
 
     data_source = os.environ.get("FABIO_DATA_SOURCE", "").strip()
     try:
-        import Fabio_orb_backtest as fb
+        import backtest.Fabio_orb_backtest as fb
 
         ds = getattr(fb, "DATA_SOURCE", None)
         if ds and not data_source:
@@ -108,7 +108,7 @@ def _collect_payload() -> dict:
             "risk_pct_max": cfg.risk_pct_max,
         }
         try:
-            import Fabio_orb_backtest as fb
+            import backtest.Fabio_orb_backtest as fb
 
             config_block["Fabio_orb_backtest.DATA_SOURCE"] = getattr(fb, "DATA_SOURCE", "")
         except Exception:
@@ -116,7 +116,7 @@ def _collect_payload() -> dict:
 
     files_out = []
     for name in _ARTIFACTS:
-        p = _FABIO_ROOT / name
+        p = _FABIO_ROOT / name  # name may include "backend/..." for nested artifacts
         try:
             st = p.stat()
             files_out.append(
@@ -160,8 +160,8 @@ def _collect_payload() -> dict:
         "artifacts": files_out,
         "log_tail": log_tail,
         "cli": {
-            "research_backtest": "python3 backend/Fabio_orb_backtest.py",
-            "live_mirror_backtest": "python3 backend/Fabio_live_mirror_backtest.py",
+            "research_backtest": "PYTHONPATH=backend:frontend python3 backend/backtest/Fabio_orb_backtest.py",
+            "live_mirror_backtest": "PYTHONPATH=backend:frontend python3 backend/backtest/Fabio_live_mirror_backtest.py",
             "verify_trades": "python3 backend/verify_trades.py",
             "force_close": "python3 backend/force_close.py",
         },

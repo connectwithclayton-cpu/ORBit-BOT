@@ -5,8 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from fabio.engine import BacktestMode, FabioBacktestEngine
-from fabio.settings import FabioBacktestSettings
+from backtest.fabio.engine import BacktestMode, FabioBacktestEngine
+from backtest.fabio.settings import FabioBacktestSettings
 
 
 class _StubRegime:
@@ -74,7 +74,7 @@ def _make_intraday_3m(day: str = "2026-05-07") -> pd.DataFrame:
 
 
 def test_profit_lock_keeps_atr_active_in_both_modes(monkeypatch):
-    from fabio import engine as eng
+    from backtest.fabio import engine as eng
 
     monkeypatch.setattr(eng, "DayRegime", _StubRegime)
     monkeypatch.setattr(eng, "option_price", lambda *_args, **_kwargs: 1.0)
@@ -112,7 +112,7 @@ def test_profit_lock_keeps_atr_active_in_both_modes(monkeypatch):
 
 
 def test_position_sizing_matches_research_risk_base_in_both_modes(monkeypatch):
-    from fabio import engine as eng
+    from backtest.fabio import engine as eng
 
     monkeypatch.setattr(eng, "DayRegime", _StubRegime)
     monkeypatch.setattr(eng, "option_price", lambda *_args, **_kwargs: 1.0)

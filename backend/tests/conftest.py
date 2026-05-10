@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from fabio.settings import FabioBacktestSettings
+from backtest.fabio.settings import FabioBacktestSettings
 
 
 def minimal_settings() -> FabioBacktestSettings:

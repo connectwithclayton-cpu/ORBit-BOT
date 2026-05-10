@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from fabio import indicators as ind
-from fabio.regime import DayRegime
+from . import indicators as ind
+from .regime import DayRegime
 
 
 def check_entry_research(candles_5m: pd.DataFrame, regime: DayRegime) -> str | None:

@@ -1,12 +1,12 @@
 """
 Fabio Strategy Backtest Engine — CLI entrypoint.
 
-Implementation lives in the `fabio` package (OO layout). This module keeps
+Implementation lives in ``backtest.fabio`` (OO layout). This module keeps
 backward-compatible names: SYMBOLS, DayRegime, load_data, run_backtest, etc.
 
 Edit `DATA_SOURCE` below or use env FABIO_DATA_SOURCE / POLYGON_API_KEY.
 
-Optional: set ``FABIO_BACKTEST_DEBUG_LOG`` to a file path for NDJSON timing lines (see ``fabio/backtest_instrumentation.py``); default is no debug file.
+Optional: set ``FABIO_BACKTEST_DEBUG_LOG`` to a file path for NDJSON timing lines (see ``backtest/fabio/backtest_instrumentation.py``); default is no debug file.
 """
 
 from __future__ import annotations
@@ -25,19 +25,20 @@ except ImportError:
 # ─── Legacy toggle (applied when __main__ runs; reload cfg after changing) ───
 DATA_SOURCE = "polygon"  # "polygon" | "yfinance"
 
-from fabio.data_loader import FabioDataLoader
-from fabio.engine import FabioBacktestEngine, BacktestMode
-from fabio.options import black_scholes_call, black_scholes_put, option_price as _option_price_core
-from fabio.regime import DayRegime as DayRegimeCore, OpeningRangeStyle
-from fabio.reporting import compute_stats as _compute_stats_core, plot_results as _plot_results_core, print_summary as _print_summary_core
-from fabio import indicators
-from fabio import signals
 from dataclasses import replace
 
-from fabio.settings import FabioBacktestSettings
-from fabio.backtest_instrumentation import log_backtest_debug
+from backtest.fabio import indicators, signals
+from backtest.fabio.backtest_instrumentation import log_backtest_debug
+from backtest.fabio.data_loader import FabioDataLoader
+from backtest.fabio.engine import BacktestMode, FabioBacktestEngine
+from backtest.fabio.options import black_scholes_call, black_scholes_put, option_price as _option_price_core
+from backtest.fabio.regime import DayRegime as DayRegimeCore, OpeningRangeStyle
+from backtest.fabio.reporting import compute_stats as _compute_stats_core
+from backtest.fabio.reporting import plot_results as _plot_results_core
+from backtest.fabio.reporting import print_summary as _print_summary_core
+from backtest.fabio.run_outputs import resolve_output_paths, write_run_metadata
+from backtest.fabio.settings import FabioBacktestSettings
 from fabio_bot_paths import fabio_bot_root
-from fabio.run_outputs import resolve_output_paths, write_run_metadata
 
 _cfg = FabioBacktestSettings.from_env()
 _cfg.data_source = DATA_SOURCE
@@ -105,8 +106,6 @@ class DayRegime(DayRegimeCore):
 
 
 def load_data(symbols, start, end):
-    from dataclasses import replace
-
     c = replace(_cfg, symbols=list(symbols), start_date=start, end_date=end)
     return FabioDataLoader(c).load()
 

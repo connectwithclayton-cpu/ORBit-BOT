@@ -3,7 +3,7 @@
 ## Goal
 Continuously verify that closed options activity in Moomoo is represented correctly in:
 - Google Sheets canonical tabs
-- Dashboard data (`trade_data.json` and rollups)
+- Dashboard data (`backend/trade_data.json` and rollups)
 
 Moomoo is authoritative for closed-fill and open-inventory truth.
 
@@ -23,7 +23,7 @@ Moomoo is authoritative for closed-fill and open-inventory truth.
   - `Reconciled Trades` tab
   - `Open Inventory` tab
 - Dashboard:
-  - `trade_data.json` (`trades`, `daily`)
+  - `backend/trade_data.json` (`trades`, `daily`)
 
 ## Canonical Keys
 - Broker fill identity:

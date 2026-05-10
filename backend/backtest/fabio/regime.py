@@ -4,8 +4,8 @@ from enum import Enum
 
 import pandas as pd
 
-from fabio import indicators as ind
-from fabio.settings import FabioBacktestSettings
+from . import indicators as ind
+from .settings import FabioBacktestSettings
 
 
 class OpeningRangeStyle(str, Enum):

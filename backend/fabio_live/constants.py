@@ -12,7 +12,7 @@ _ROOT = fabio_bot_root()
 load_dotenv(_ROOT / ".env")
 
 from config import MOOMOO_TRADE_ENV
-from fabio.settings import FabioBacktestSettings
+from backtest.fabio.settings import FabioBacktestSettings
 from moomoo import TrdEnv
 
 STRATEGY_NAME = "FABIO"

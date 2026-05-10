@@ -6,10 +6,10 @@ from enum import Enum
 
 import pandas as pd
 
-from fabio.options import option_price
-from fabio.regime import DayRegime, OpeningRangeStyle
-from fabio import signals
-from fabio.settings import FabioBacktestSettings
+from .options import option_price
+from .regime import DayRegime, OpeningRangeStyle
+from . import signals
+from .settings import FabioBacktestSettings
 
 
 class BacktestMode(str, Enum):

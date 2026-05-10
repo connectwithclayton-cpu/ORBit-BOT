@@ -1,9 +1,9 @@
 """
-Fabio backtest package — object-oriented core used by CLI scripts.
+Fabio backtest package — object-oriented core used by CLI scripts under ``backtest/``.
 
 Typical usage::
 
-    from fabio import FabioBacktestSettings, FabioDataLoader, FabioBacktestEngine, BacktestMode
+    from backtest.fabio import FabioBacktestSettings, FabioDataLoader, FabioBacktestEngine, BacktestMode
 
     cfg = FabioBacktestSettings.from_env()
     loader = FabioDataLoader(cfg)
@@ -12,10 +12,10 @@ Typical usage::
     trades, equity = engine.run(data, vix, BacktestMode.RESEARCH)
 """
 
-from fabio.settings import FabioBacktestSettings
-from fabio.data_loader import FabioDataLoader
-from fabio.engine import FabioBacktestEngine, BacktestMode
-from fabio.reporting import compute_stats, plot_results, print_summary
+from .data_loader import FabioDataLoader
+from .engine import BacktestMode, FabioBacktestEngine
+from .reporting import compute_stats, plot_results, print_summary
+from .settings import FabioBacktestSettings
 
 __all__ = [
     "FabioBacktestSettings",

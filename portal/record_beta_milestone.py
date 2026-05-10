@@ -19,6 +19,7 @@ from pathlib import Path
 _PORTAL = Path(__file__).resolve().parent
 _FABIO_ROOT = _PORTAL.parent
 sys.path.insert(0, str(_FABIO_ROOT / "backend"))
+sys.path.insert(0, str(_FABIO_ROOT / "frontend"))
 
 from fabio_beta_identity import get_git_identity, load_beta_manifest_records
 

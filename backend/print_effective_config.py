@@ -29,7 +29,7 @@ from config import (
     TG_PERSONAL_ID,
     TG_TOKEN,
 )
-from fabio.settings import FabioBacktestSettings
+from backtest.fabio.settings import FabioBacktestSettings
 
 
 def _mask(value: str) -> str:

@@ -4,9 +4,9 @@
 
 **ORBit (public):** [GitHub repository](https://github.com/connectwithclayton-cpu/ORBit) · **Live site (GitHub Pages):** [connectwithclayton-cpu.github.io/ORBit](https://connectwithclayton-cpu.github.io/ORBit/) — that repo’s **root is this `Fabio_bot/` tree only** (not the parent Cursor Projects monorepo). Publish with `git archive HEAD:Fabio_bot` from the monorepo; never copy the raw working tree without excludes.
 
-Python backtest for a **Fabio / ORBit-style opening range breakout** strategy with **0DTE-style options simulation** (Black–Scholes, fixed DTE, slippage, commissions). This tree also contains related **live** helpers under `backend/` (entry `backend/orb_bot_fabio.py`), dashboard/Sheets under `frontend/`, and operators/publish tooling under `portal/`. The main research entry point is `backend/Fabio_orb_backtest.py`.
+Python backtest for a **Fabio / ORBit-style opening range breakout** strategy with **0DTE-style options simulation** (Black–Scholes, fixed DTE, slippage, commissions). This tree also contains related **live** helpers under `backend/` (entry `backend/orb_bot_fabio.py`), dashboard/Sheets under `frontend/`, and operators/publish tooling under `portal/`. The main research entry point is `backend/backtest/Fabio_orb_backtest.py`.
 
-**Layout:** `backend/` (engine, broker, tests, `moomoo_eod_failsafe.py`, `requirements*.txt`, `pytest.ini`), `frontend/` (`dashboard_writer.py`, `sheets_logger.py`, `debug_board_writer.py`), `portal/` (schedulers, `push_dashboard.sh`, `beta_manifest.json`, `docs/`, `.env.example`, `tooling/` for pre-commit + detect-secrets baseline). From `Fabio_bot/` run Python with `PYTHONPATH=backend:frontend` (set automatically in CI and in `backend/pytest.ini` for tests).
+**Layout:** `backend/` (live bot, reconcile, `moomoo_eod_failsafe.py`, `requirements*.txt`, `pytest.ini`, **`backtest/`** for research engine + CLI runners), `frontend/` (dashboard HTML/JSON, `sheets_logger.py`, `debug_board_writer.py`, `fabio_beta_identity.py`, `manual_position_omissions.py`), `portal/` (schedulers, `push_dashboard.sh`, `beta_manifest.json`, `docs/`, `.env.example`, `tooling/` for pre-commit + detect-secrets baseline). From `Fabio_bot/` run Python with `PYTHONPATH=backend:frontend` (set automatically in CI and in `backend/pytest.ini` for tests).
 
 **Root files outside those folders:** `README.md` (this file), machine-local **`.env`** (gitignored), **`.gitignore`**, and **`.github/`** (CI workflows — GitHub requires this path at the repo root).
 
@@ -75,7 +75,7 @@ Use `python3 backend/moomoo_eod_failsafe.py --help` for full flags. Schedulers: 
 From this directory:
 
 ```bash
-PYTHONPATH=backend:frontend python3 backend/Fabio_orb_backtest.py
+PYTHONPATH=backend:frontend python3 backend/backtest/Fabio_orb_backtest.py
 ```
 
 The script prints a summary to the console and writes CSVs and a chart (see [Outputs](#outputs)).
@@ -109,20 +109,20 @@ Defaults: **\$10,000** modeled book vs **\$1,000,000** broker reference (equival
 
 ## Backtest runners
 
-- `backend/Fabio_orb_backtest.py` — primary **research** backtest (source of truth). Uses `OpeningRangeStyle.RESEARCH` in the engine: OR = **09:30–09:44 ET** on **5-minute** bars (same definition as the **current** live bot in `backend/fabio_live/regime.py`).
-- `backend/Fabio_live_mirror_backtest.py` — **legacy live-mirror** backtest: uses `OpeningRangeStyle.LIVE_MIRROR` in `backend/fabio/regime.py` (OR window **09:30–09:40 ET** on 5m data). This approximates an **older** live-bot OR definition; it does **not** match today’s live bot, which was aligned back to research.
-- `backend/FabioOrb_copy_backtest.py` — compatibility wrapper alias to `Fabio_orb_backtest.py` (kept to avoid drift from duplicate code).
+- `backend/backtest/Fabio_orb_backtest.py` — primary **research** backtest (source of truth). Uses `OpeningRangeStyle.RESEARCH` in the engine: OR = **09:30–09:44 ET** on **5-minute** bars (same definition as the **current** live bot in `backend/fabio_live/regime.py`).
+- `backend/backtest/Fabio_live_mirror_backtest.py` — **legacy live-mirror** backtest: uses `OpeningRangeStyle.LIVE_MIRROR` in `backend/backtest/fabio/regime.py` (OR window **09:30–09:40 ET** on 5m data). This approximates an **older** live-bot OR definition; it does **not** match today’s live bot, which was aligned back to research.
+- `backend/backtest/FabioOrb_copy_backtest.py` — compatibility wrapper alias to `Fabio_orb_backtest.py` (kept to avoid drift from duplicate code).
 
 ---
 
 ## Data sources
 
-**Precedence (research runner `backend/Fabio_orb_backtest.py` only):**
+**Precedence (research runner `backend/backtest/Fabio_orb_backtest.py` only):**
 
 1. `FabioBacktestSettings.from_env()` reads optional env `FABIO_DATA_SOURCE` (`polygon` or `yfinance`) into the config object.
-2. The module then runs **`_cfg.data_source = DATA_SOURCE`**, where `DATA_SOURCE` is the constant near the top of `backend/Fabio_orb_backtest.py`.
+2. The module then runs **`_cfg.data_source = DATA_SOURCE`**, where `DATA_SOURCE` is the constant near the top of `backend/backtest/Fabio_orb_backtest.py`.
 
-So the **in-file `DATA_SOURCE` always wins** for that script. Env `FABIO_DATA_SOURCE` affects other callers of `FabioBacktestSettings.from_env()` (for example `backend/print_effective_config.py` and live `backend/fabio_live/constants.py`) but **not** the research backtest’s data source unless you change or remove the override in `backend/Fabio_orb_backtest.py`.
+So the **in-file `DATA_SOURCE` always wins** for that script. Env `FABIO_DATA_SOURCE` affects other callers of `FabioBacktestSettings.from_env()` (for example `backend/print_effective_config.py` and live `backend/fabio_live/constants.py`) but **not** the research backtest’s data source unless you change or remove the override in `backend/backtest/Fabio_orb_backtest.py`.
 
 | Value | Behavior |
 |-------|----------|
@@ -159,11 +159,11 @@ Also treat `google_credentials.json` and any service-account credential files as
 
 ## Configuration (edit the script)
 
-Strategy tunables live in `fabio/settings.py` (`FabioBacktestSettings`) and are shared by backtests + live bot.
+Strategy tunables live in `backend/backtest/fabio/settings.py` (`FabioBacktestSettings`) and are shared by backtests + live bot.
 
 `config.py` is integrations-only (Moomoo/Telegram/optional Google env values).
 
-**Data source:** Prefer editing `DATA_SOURCE` in `backend/Fabio_orb_backtest.py` for the research backtest, or set `FABIO_DATA_SOURCE` in `.env` for tools that only call `from_env()` (see [Data sources](#data-sources)).
+**Data source:** Prefer editing `DATA_SOURCE` in `backend/backtest/Fabio_orb_backtest.py` for the research backtest, or set `FABIO_DATA_SOURCE` in `.env` for tools that only call `from_env()` (see [Data sources](#data-sources)).
 
 Primary strategy knobs:
 
@@ -232,8 +232,8 @@ Written to the **current working directory** when you run the script (usually th
 | `backend/orb_bot_fabio.py` | Live bot entrypoint (loads `.env`, runs `ORBBot`) |
 | `backend/fabio_live/` | Live stack: `constants`, `market_data`, `regime`, `signals`, `orders`, `circuit`, `async_ops`, `bot` |
 | `backend/config.py` | Shared configuration for live tooling |
-| `backend/FabioOrb_copy_backtest.py` | Compatibility alias to canonical research backtest |
-| `backend/Fabio_live_mirror_backtest.py` | Legacy live-mirror backtest (`BacktestMode.LIVE_MIRROR`) |
+| `backend/backtest/FabioOrb_copy_backtest.py` | Compatibility alias to canonical research backtest |
+| `backend/backtest/Fabio_live_mirror_backtest.py` | Legacy live-mirror backtest (`BacktestMode.LIVE_MIRROR`) |
 | `frontend/dashboard_writer.py`, `live_dashboard.html` (project root) | Dashboard pipeline |
 | `backend/telegram_bot.py`, `frontend/sheets_logger.py` | Notifications / logging |
 

@@ -1,12 +1,13 @@
 """
 Legacy live-mirror backtest (older live-bot OR + entry approximation).
 
-Uses ``BacktestMode.LIVE_MIRROR`` in ``fabio/engine.py`` — OR window **09:30–09:40 ET**
+Uses ``BacktestMode.LIVE_MIRROR`` in ``backtest/fabio/engine.py`` — OR window **09:30–09:40 ET**
 on 5m bars. Historical comparison only; research source of truth remains
 ``Fabio_orb_backtest.py``.
 
-Run:
-    python Fabio_live_mirror_backtest.py
+Run (from ``Fabio_bot/`` with ``PYTHONPATH=backend``):
+
+    python backend/backtest/Fabio_live_mirror_backtest.py
 """
 
 from __future__ import annotations
@@ -15,17 +16,17 @@ import sys
 from pathlib import Path
 import time
 
-_SCRIPT_DIR = Path(__file__).resolve().parent
-if str(_SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(_SCRIPT_DIR))
+_BACKEND = Path(__file__).resolve().parent.parent
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
 
-import Fabio_orb_backtest as F
-from fabio.data_loader import FabioDataLoader
-from fabio.engine import FabioBacktestEngine, BacktestMode
-from fabio.reporting import compute_stats, plot_results, print_summary
-from fabio.backtest_instrumentation import log_backtest_debug
+from backtest import Fabio_orb_backtest as F
+from backtest.fabio.backtest_instrumentation import log_backtest_debug
+from backtest.fabio.data_loader import FabioDataLoader
+from backtest.fabio.engine import BacktestMode, FabioBacktestEngine
+from backtest.fabio.reporting import compute_stats, plot_results, print_summary
+from backtest.fabio.run_outputs import resolve_output_paths, write_run_metadata
 from fabio_bot_paths import fabio_bot_root
-from fabio.run_outputs import resolve_output_paths, write_run_metadata
 
 F._cfg.data_source = F.DATA_SOURCE
 

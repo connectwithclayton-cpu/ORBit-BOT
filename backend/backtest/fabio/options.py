@@ -2,7 +2,7 @@ import math
 
 from scipy.stats import norm
 
-from fabio.settings import FabioBacktestSettings
+from .settings import FabioBacktestSettings
 
 
 def black_scholes_call(S, K, T, r, sigma):

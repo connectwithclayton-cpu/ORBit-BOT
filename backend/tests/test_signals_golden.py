@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from fabio.regime import DayRegime, OpeningRangeStyle
-from fabio.signals import check_entry_research, check_exit
+from backtest.fabio.regime import DayRegime, OpeningRangeStyle
+from backtest.fabio.signals import check_entry_research, check_exit
 
 from tests.conftest import daily_bullish_atr, intraday_5m_or_known, minimal_settings
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fabio.regime import DayRegime, OpeningRangeStyle
+from backtest.fabio.regime import DayRegime, OpeningRangeStyle
 
 from tests.conftest import daily_bullish_atr, intraday_5m_or_known, minimal_settings
 

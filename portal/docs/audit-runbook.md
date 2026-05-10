@@ -11,7 +11,7 @@ After material paper SIMULATE fills (especially before trusting KPIs):
    ```bash
    PYTHONPATH=backend:frontend python3 backend/reconcile_moomoo_to_sheets.py
    ```
-   Dry-run prints counts only — it does **not** write `trade_data.json`, HTML, or replace **Broker Fills / Reconciled Trades / Open Inventory** tabs.
+   Dry-run prints counts only — it does **not** write `backend/trade_data.json`, HTML, or replace **Broker Fills / Reconciled Trades / Open Inventory** tabs.
 2. **Confirm** no `RECONCILE_MISMATCH` in logs (broker open inventory must equal FIFO-derived opens). If it appears, fix OpenD/inventory visibility and rerun — do not hand-edit canonical tabs.
 3. **Verify** with full-stack audit when investigating “missing today’s positions”:
    ```bash
@@ -35,7 +35,7 @@ PYTHONPATH=backend:frontend python3 backend/verify_phase2_reliability.py --sync-
 
 ## Interpreting “today looks short”
 
-The dashboard counts **FIFO closed segments** (each partial exit can be multiple rows per symbol/date). Compare per-date counts printed by `audit_full_positions.py` (FIFO vs `trade_data.json` vs Sheets).
+The dashboard counts **FIFO closed segments** (each partial exit can be multiple rows per symbol/date). Compare per-date counts printed by `audit_full_positions.py` (FIFO vs `backend/trade_data.json` vs Sheets).
 
 ## Files
 - Runner: `backend/scripts/audit_moomoo_sync.py`

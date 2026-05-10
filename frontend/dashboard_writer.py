@@ -9,9 +9,9 @@ Aggregated KPIs (win rate, net P&L, charts) use closed positions — one outcome
 per CLOSE leg / round-trip — not raw ledger rows. Sheets Daily Summary uses the
 same aggregation (aggregate_closed_positions).
 
-Output files (project root ``Fabio_bot/``):
-  trade_data.json       ← persistent data store
-  live_dashboard.html   ← local copy beside JSON
+Output files (dashboard / state under ``Fabio_bot/``):
+  backend/trade_data.json   ← persistent data store
+  frontend/live_dashboard.html  ← local HTML beside repo layout
   ~/Documents/TRADING/fabio_live_dashboard.html  ← easy-access copy (optional)
 """
 
@@ -26,8 +26,8 @@ from pathlib import Path
 from manual_position_omissions import is_omitted_dashboard_close_trade
 
 _FABIO_ROOT = Path(__file__).resolve().parent.parent
-DATA_FILE   = str(_FABIO_ROOT / "trade_data.json")
-DASH_LOCAL  = str(_FABIO_ROOT / "live_dashboard.html")
+DATA_FILE   = str(_FABIO_ROOT / "backend" / "trade_data.json")
+DASH_LOCAL  = str(_FABIO_ROOT / "frontend" / "live_dashboard.html")
 DASH_MAIN   = os.path.expanduser("~/Documents/TRADING/fabio_live_dashboard.html")
 
 # OS option symbol token after market prefix (e.g. SPY + expiry + C/P + strike).
@@ -1334,7 +1334,7 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     </div>
     <div class="modal-body">
       <div class="rules-note">
-        Source of truth: <code>Fabio_orb_backtest.py</code> (BacktestMode.RESEARCH), <code>fabio/settings.py</code>, <code>fabio/engine.py</code>, <code>fabio/signals.py</code>, <code>fabio/reporting.py</code>. Educational only - not advice.
+        Source of truth: <code>backend/backtest/Fabio_orb_backtest.py</code> (BacktestMode.RESEARCH), <code>backend/backtest/fabio/settings.py</code>, <code>backend/backtest/fabio/engine.py</code>, <code>backend/backtest/fabio/signals.py</code>, <code>backend/backtest/fabio/reporting.py</code>. Educational only - not advice.
       </div>
       <div class="rules-section">
         <h4>Universe, Data, Instrument Model</h4>
