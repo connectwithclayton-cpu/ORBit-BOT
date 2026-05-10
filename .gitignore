@@ -1,0 +1,72 @@
+# --- Secrets and credential material (never public) ---
+.env
+.env.*
+!.env.example
+.envrc
+fabio.env
+*.local
+*.secret
+secrets/
+api_keys.txt
+**/local_secrets/
+*env*copy*.txt
+Fabio Orb.env copy.txt
+google_credentials.json
+*credentials*.json
+*secret*.json
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# --- OAuth / Sheets token cache ---
+token.json
+
+# --- Runtime and operational artifacts (may contain trade metadata) ---
+*.log
+dashboard_push.log
+orb_bot_fabio.log
+audit_sync_scheduler.log
+trade_data.json
+bot_health_snapshots.jsonl
+audit_sync.jsonl
+audit_sync_state.json
+
+# --- Generated research and local outputs ---
+results/
+Fabio_backtest_trades.csv
+Fabio_backtest_equity.csv
+Fabio_backtest_report.png
+Fabio_live_mirror_trades.csv
+Fabio_live_mirror_equity.csv
+Fabio_live_mirror_report.png
+fabio_backtest_debug.ndjson
+live_dashboard.html
+Fabio_debug_board.html
+fabio_live_dashboard.html
+
+# --- Python / tooling noise ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.eggs/
+dist/
+build/
+htmlcov/
+.coverage
+coverage.xml
+.hypothesis/
+
+# --- Virtual environments ---
+.venv/
+venv/
+ENV/
+
+# --- OS and editors ---
+.DS_Store
+.idea/
+.vscode/
