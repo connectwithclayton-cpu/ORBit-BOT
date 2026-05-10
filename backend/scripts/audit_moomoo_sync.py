@@ -7,7 +7,7 @@ Authoritative source: Moomoo broker records.
 This script compares:
 1) Moomoo closed option SELL fills
 2) Google Sheets canonical tabs (Broker Fills, Reconciled Trades, Open Inventory)
-3) Dashboard data store (trade_data.json daily rollups + trade rows)
+3) Dashboard data store (backend/trade_data.json daily rollups + trade rows)
 
 Output:
 - Append-only JSONL audit log (default: ./audit_sync.jsonl)

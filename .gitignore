@@ -28,6 +28,7 @@ dashboard_push.log
 orb_bot_fabio.log
 audit_sync_scheduler.log
 trade_data.json
+backend/trade_data.json
 bot_health_snapshots.jsonl
 audit_sync.jsonl
 audit_sync_state.json

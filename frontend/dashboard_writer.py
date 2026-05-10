@@ -4,7 +4,7 @@ dashboard_writer.py — Generates fabio_live_dashboard.html from accumulated tra
 The bot calls DashboardWriter.append_session() at EOD each day with a broker
 snapshot for open_positions so the HTML table does not retain stale rows from
 prior reconcile runs.
-Data is persisted in trade_data.json so history builds up across sessions.
+Data is persisted in ``backend/trade_data.json`` so history builds up across sessions.
 Aggregated KPIs (win rate, net P&L, charts) use closed positions — one outcome
 per CLOSE leg / round-trip — not raw ledger rows. Sheets Daily Summary uses the
 same aggregation (aggregate_closed_positions).

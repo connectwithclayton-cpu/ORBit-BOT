@@ -7,7 +7,7 @@ Reconcile PAPER account fills from Moomoo into canonical Sheets tabs:
 Also keeps legacy Trades backfill in sync and regenerates dashboard from canonical
 reconciled outputs.
 
-Dry-run: prints intended actions only — does not append Trades, write trade_data.json,
+Dry-run: prints intended actions only — does not append Trades, write backend/trade_data.json,
 HTML, or replace canonical tabs. If broker open inventory disagrees with FIFO, exits before
 dashboard save except when broker returns only zero-qty position rows (“ghost snapshot”):
 then FIFO opens are used for the gate by default (see FABIO_STRICT_BROKER_POSITION_GATE).
@@ -1016,7 +1016,7 @@ def main():
         )
         print(f"[reconcile] {trust_msg}")
         print(
-            "[reconcile] trade_data.json/HTML open_positions will remain broker-only (empty if "
+            "[reconcile] backend/trade_data.json/HTML open_positions will remain broker-only (empty if "
             "no positive qty); Open Inventory sheet tab still reflects FIFO-derived lots."
         )
         if logger.is_connected():
@@ -1035,7 +1035,7 @@ def main():
         )
         print(f"✗ {detail}")
         print(
-            "⚠ Broker vs FIFO opens disagree — dashboard/trade_data.json and canonical Sheets "
+            "⚠ Broker vs FIFO opens disagree — backend/trade_data.json (dashboard) and canonical Sheets "
             "tabs were NOT updated. Fix OpenD/paper position visibility or investigate inventory; "
             "rerun reconcile."
         )
@@ -1081,7 +1081,7 @@ def main():
             f"[dry-run] Would write {TAB_BROKER_FILLS}/{TAB_RECON_TRADES}/{TAB_OPEN_INVENTORY} "
             f"({len(broker_fill_rows)} broker rows, {len(recon_rows)} recon closes)."
         )
-        print("Dry-run: no changes to trade_data.json, HTML, or Sheets.")
+        print("Dry-run: no changes to backend/trade_data.json, HTML, or Sheets.")
         return 0
 
     writer = DashboardWriter()

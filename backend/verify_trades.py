@@ -1,6 +1,6 @@
 """
 verify_trades.py — Pull today's actual fills from Moomoo OpenD
-and compare against what's recorded in trade_data.json.
+and compare against what's recorded in ``backend/trade_data.json``.
 
 Usage:
     python3 verify_trades.py
@@ -39,7 +39,7 @@ from moomoo import OpenSecTradeContext, TrdMarket, TrdEnv, SecurityFirm, RET_OK
 # ── Config ────────────────────────────────────────────────────────────────────
 MOOMOO_HOST = os.getenv("MOOMOO_HOST", "127.0.0.1")
 MOOMOO_PORT = int(os.getenv("MOOMOO_PORT", "11111"))
-DATA_FILE   = _FABIO_ROOT / "trade_data.json"
+DATA_FILE   = _FABIO_ROOT / "backend" / "trade_data.json"
 
 _env_flag = os.getenv("MOOMOO_TRADE_ENV", "SIMULATE").upper()
 if "--live" in sys.argv:
@@ -174,10 +174,10 @@ try:
                 print(f"  {side:5s} {code:20s} qty={qty} dealt={dealt} "
                       f"avg_px={price:.3f}  created={ctime}  [{status}]")
 
-    # ── 4. Compare to trade_data.json ─────────────────────────────────────────
+    # ── 4. Compare to backend/trade_data.json ────────────────────────────────
     print()
     print("═" * 60)
-    print(f"  RECORDED IN trade_data.json for {target_date}")
+        print(f"  RECORDED IN backend/trade_data.json for {target_date}")
     print("═" * 60)
 
     if DATA_FILE.exists():
@@ -191,7 +191,7 @@ try:
         else:
             print(f"  No trades recorded for {target_date}")
     else:
-        print("  trade_data.json not found.")
+        print("  backend/trade_data.json not found.")
 
     print()
     print("✅ Verification complete.")

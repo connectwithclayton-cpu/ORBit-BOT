@@ -6,7 +6,7 @@
 
 Python backtest for a **Fabio / ORBit-style opening range breakout** strategy with **0DTE-style options simulation** (Black–Scholes, fixed DTE, slippage, commissions). This tree also contains related **live** helpers under `backend/` (entry `backend/orb_bot_fabio.py`), dashboard/Sheets under `frontend/`, and operators/publish tooling under `portal/`. The main research entry point is `backend/backtest/Fabio_orb_backtest.py`.
 
-**Layout:** `backend/` (live bot, reconcile, `moomoo_eod_failsafe.py`, `requirements*.txt`, `pytest.ini`, **`backtest/`** for research engine + CLI runners), `frontend/` (dashboard HTML/JSON, `sheets_logger.py`, `debug_board_writer.py`, `fabio_beta_identity.py`, `manual_position_omissions.py`), `portal/` (schedulers, `push_dashboard.sh`, `beta_manifest.json`, `docs/`, `.env.example`, `tooling/` for pre-commit + detect-secrets baseline). From `Fabio_bot/` run Python with `PYTHONPATH=backend:frontend` (set automatically in CI and in `backend/pytest.ini` for tests).
+**Layout:** `backend/` (live bot, reconcile, `moomoo_eod_failsafe.py`, `requirements*.txt`, `pytest.ini`, **`backtest/`** for research engine + CLI runners), `frontend/` (dashboard HTML/JSON, `sheets_logger.py`, `debug_board_writer.py`, `fabio_beta_identity.py`, `manual_position_omissions.py`), `portal/` (schedulers, `push_dashboard.sh`, `beta_manifest.json`, `docs/`, `portal/.env.example`, `portal/tooling/` for pre-commit + detect-secrets baseline). From `Fabio_bot/` run Python with `PYTHONPATH=backend:frontend` (set automatically in CI and in `backend/pytest.ini` for tests).
 
 **Root files outside those folders:** `README.md` (this file), machine-local **`.env`** (gitignored), **`.gitignore`**, and **`.github/`** (CI workflows — GitHub requires this path at the repo root).
 
@@ -41,7 +41,7 @@ pip install -r backend/requirements-optional.txt
 
 ```bash
 pip install -r backend/requirements-dev.txt
-PYTHONPATH=backend:frontend python3 -m pytest -c backend/pytest.ini backend/tests/ -v
+PYTHONPATH=backend:frontend python3 -m pytest -c backend/pytest.ini -v
 ```
 
 To **refresh** pins after upgrading packages: reinstall into a clean venv, run `pip freeze > backend/requirements.lock`, and update `==` lines in `backend/requirements.txt` / `backend/requirements-optional.txt` / `backend/requirements-dev.txt` for the packages you care about.
@@ -234,8 +234,10 @@ Written to the **current working directory** when you run the script (usually th
 | `backend/config.py` | Shared configuration for live tooling |
 | `backend/backtest/FabioOrb_copy_backtest.py` | Compatibility alias to canonical research backtest |
 | `backend/backtest/Fabio_live_mirror_backtest.py` | Legacy live-mirror backtest (`BacktestMode.LIVE_MIRROR`) |
-| `frontend/dashboard_writer.py`, `live_dashboard.html` (project root) | Dashboard pipeline |
+| `frontend/dashboard_writer.py`, `backend/trade_data.json`, `frontend/live_dashboard.html` | Dashboard pipeline |
 | `backend/telegram_bot.py`, `frontend/sheets_logger.py` | Notifications / logging |
+
+If you still have a **legacy** `trade_data.json` at the **Fabio_bot root** (older layout), move or merge it into **`backend/trade_data.json`** so `dashboard_writer`, `reconcile_moomoo_to_sheets`, and `verify_trades` all read the same file.
 
 ---
 
@@ -340,8 +342,8 @@ Canonical outputs in Sheets:
 - `Open Inventory`
 
 Precedence notes:
-- **`--dry-run`** only prints intentions — it does **not** persist `trade_data.json`, dashboard HTML, or replace canonical tabs (see [portal/docs/audit-runbook.md](portal/docs/audit-runbook.md) publishing rule).
-- Successful reconcile sets `trade_data.json -> open_positions` from FIFO/Open Inventory **after** broker vs FIFO inventory matches.
+- **`--dry-run`** only prints intentions — it does **not** persist `backend/trade_data.json`, dashboard HTML, or replace canonical tabs (see [portal/docs/audit-runbook.md](portal/docs/audit-runbook.md) publishing rule).
+- Successful reconcile sets `backend/trade_data.json` → `open_positions` from FIFO/Open Inventory **after** broker vs FIFO inventory matches.
 - Bot-only EOD (without reconcile) sets open positions from Moomoo `position_list_query`.
 - `RECONCILE_MISMATCH` skips **both** dashboard persistence and canonical tab replaces until resolved.
 
@@ -517,7 +519,7 @@ Targeted tests and full tests:
 
 ```bash
 PYTHONPATH=backend:frontend python3 -m pytest -c backend/pytest.ini backend/tests/test_audit_moomoo_sync.py -q
-PYTHONPATH=backend:frontend python3 -m pytest -c backend/pytest.ini backend/tests/ -v
+PYTHONPATH=backend:frontend python3 -m pytest -c backend/pytest.ini -v
 ```
 
 Secrets scan hooks:
@@ -537,7 +539,7 @@ pre-commit run -c portal/tooling/pre-commit-config.yaml --all-files
 - **`yfinance not found`:** Run the `pip install` line above.
 - **Polygon rate limits / slow runs:** The script sleeps between paginated requests (`POLYGON_SLEEP_SEC`). Expect long runs for multi-symbol, multi-year history.
 - **No trades:** Tighten filters in CONFIG, shorten the date range, or confirm data loaded (empty intraday → no signals).
-- **Reconcile mismatch alert (`RECONCILE_MISMATCH`):** Broker open positions and computed `Open Inventory` disagree. **Both** `trade_data.json`/HTML refresh and canonical Sheets tab replaces are skipped. Re-run reconcile after fixing Moomoo/FIFO inventory visibility, then publish again.
+- **Reconcile mismatch alert (`RECONCILE_MISMATCH`):** Broker open positions and computed `Open Inventory` disagree. **Both** `backend/trade_data.json`/HTML refresh and canonical Sheets tab replaces are skipped. Re-run reconcile after fixing Moomoo/FIFO inventory visibility, then publish again.
 
 ---
 
@@ -548,7 +550,7 @@ Use at your own risk. Verify all rules and parameters against your own trading p
 ## Repo hygiene
 
 - Use `.gitignore` to exclude secrets and generated outputs (`.env`, credentials JSON, logs, generated CSV/PNG).
-- **Before your first `git commit`:** run `git init` (if needed), then `git status` and confirm nothing sensitive or machine-local appears (e.g. `trade_data.json`, logs). Add patterns to `.gitignore` if you introduce new local-only stores.
+- **Before your first `git commit`:** run `git init` (if needed), then `git status` and confirm nothing sensitive or machine-local appears (e.g. `backend/trade_data.json`, logs). Add patterns to `.gitignore` if you introduce new local-only stores.
 - Install local secret scanning hooks:
   ```bash
   pip install -r backend/requirements-dev.txt
