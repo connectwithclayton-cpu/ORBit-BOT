@@ -2,7 +2,7 @@
 
 [![Release channel — BETA](https://img.shields.io/badge/release-BETA-FFD740?logo=git&logoColor=black)](portal/beta_manifest.json)
 
-**ORBit (public):** [GitHub repository](https://github.com/connectwithclayton-cpu/ORBit) · **Live site (GitHub Pages):** [connectwithclayton-cpu.github.io/ORBit](https://connectwithclayton-cpu.github.io/ORBit/)
+**ORBit (public):** [GitHub repository](https://github.com/connectwithclayton-cpu/ORBit) · **Live site (GitHub Pages):** [connectwithclayton-cpu.github.io/ORBit](https://connectwithclayton-cpu.github.io/ORBit/) — that repo’s **root is this `Fabio_bot/` tree only** (not the parent Cursor Projects monorepo). Publish with `git archive HEAD:Fabio_bot` from the monorepo; never copy the raw working tree without excludes.
 
 Python backtest for a **Fabio / ORBit-style opening range breakout** strategy with **0DTE-style options simulation** (Black–Scholes, fixed DTE, slippage, commissions). This tree also contains related **live** helpers under `backend/` (entry `backend/orb_bot_fabio.py`), dashboard/Sheets under `frontend/`, and operators/publish tooling under `portal/`. The main research entry point is `backend/Fabio_orb_backtest.py`.
 
