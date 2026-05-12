@@ -309,6 +309,8 @@ Health snapshot counters now include:
 - `dashboard_intraday_refresh_requests` / `dashboard_intraday_refresh_enqueued` / `dashboard_intraday_refresh_throttled`
 - `dashboard_open_refresh_requests` / `dashboard_open_refresh_enqueued` / `dashboard_open_refresh_throttled`
 
+Each **`bot_health_snapshots.jsonl`** line also carries **`position_parity`**, comparing Moomoo `position_list_query` option opens (symbols in the Fabio universe) against the session **`OrderManager`** book. **`parity_ok`** stays `true` only when broker and tracked qty match per option `code`; **`drifts`** lists `{code, broker_qty, tracked_qty}` when they disagree (for example after closing outside the bot). Sheets may receive **`POSITION_PARITY`** alerts; Telegram uses the same cooldown as other ops warnings (`OPS_ALERT_COOLDOWN_SEC`). See [`portal/docs/Morning-Audit.md`](portal/docs/Morning-Audit.md) for interpreting **`holding`** log lines versus broker truth.
+
 Rollback / reduce refresh pressure safely (no code changes):
 
 - Increase either throttle value (e.g. `30` and `300`) to slow updates.
@@ -428,6 +430,8 @@ PYTHONPATH=backend:frontend python3 backend/scripts/audit_moomoo_sync.py --eod -
 # 4) Review audit summary
 bash backend/scripts/summarize_audit_sync.sh audit_sync.jsonl
 ```
+
+**NYSE session and EOD timing:** Canonical reference is [`portal/docs/EXCHANGE_CALENDAR.md`](portal/docs/EXCHANGE_CALENDAR.md). The primary bot’s scheduled flatten uses **`FABIO_EOD_CLOSE_BEFORE_SESSION_MINUTES`** (default **15**) before official **XNYS** session close (same as legacy 15:45 vs 16:00 on full sessions). The separate **`moomoo_eod_failsafe.py`** process uses **`FABIO_FAILSAFE_CLOSE_BEFORE_SESSION_MINUTES`** (default **10**) before session close.
 
 ### Scheduler lifecycle (bot + sync audit)
 

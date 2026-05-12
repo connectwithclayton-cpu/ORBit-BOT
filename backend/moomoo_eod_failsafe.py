@@ -2,11 +2,17 @@
 """
 Post–EOD-close fail-safe for Moomoo OpenAPI (OpenD).
 
-If anything is still open after the normal 3:45 PM ET window, this script pulls
-*live* positions from the broker (entire account, not a strategy session),
-then submits market orders to flatten matching rows.
+If anything is still open after the primary bot's scheduled flatten and near the end of the
+regular session, this script pulls *live* positions from the broker (entire account, not a
+strategy session), then submits market orders to flatten matching rows.
 
-**Non-interference:** Schedule this job **after** primary EOD (e.g. 3:50 PM ET), as a **separate** process from the 3:45 close—not embedded in or started before the primary path. Use ``--require-after-et`` with cutoff 15:45 so accidental daytime runs do not fire this script.
+**Non-interference:** Schedule this job **after** the primary bot's EOD flatten (legacy ~3:45 PM ET
+on full sessions) and **after** the fail-safe eligibility window — typically ~10 minutes before
+official **XNYS session close** (``FABIO_FAILSAFE_CLOSE_BEFORE_SESSION_MINUTES``, default ``10``).
+On early-close days the window moves with the exchange calendar (e.g. ~12:50 PM ET before a 1:00 PM
+close). Use ``--require-after-et`` so accidental daytime runs do not fire; it compares America/New_York
+time to ``session_close_et`` from ``exchange_calendars`` minus the fail-safe offset (unless
+``--legacy-fixed-cutoff-et`` is set).
 
 Prerequisites:
   - OpenD running and logged in (same machine or reachable host/port).
@@ -40,7 +46,8 @@ only when intentional. Space orders with ``--sleep-between-orders`` (or env
   unknown ``--security-firm``.
 - ``2`` — Reserved: **invalid CLI** (Python ``argparse`` convention on unknown flags / bad values).
 - ``3`` — Live run finished but **at least one** ``place_order`` returned non-OK; inspect logs / JSONL.
-- ``4`` — Aborted: ``--require-after-et`` and current ET is not a US weekday after the cutoff.
+- ``4`` — Aborted: ``--require-after-et`` and current ET is outside the allowed window (XNYS
+  calendar fail-safe slot or legacy weekday cutoff).
 """
 
 from __future__ import annotations
@@ -173,6 +180,27 @@ def _us_weekday_after_cutoff(now_et: datetime, hour: int, minute: int) -> bool:
     return now_et >= cutoff
 
 
+def _xnys_failsafe_cutoff_ok(now_et: datetime) -> tuple[bool, str]:
+    """After session_close - FAILSAFE_MINUTES on NYSE trading days; else explains abort."""
+    try:
+        from datetime import timedelta
+
+        from fabio_live.constants import FAILSAFE_CLOSE_BEFORE_SESSION_MINUTES
+        from fabio_live.us_equity_calendar import get_nyse_session_schedule_et
+    except ImportError as e:
+        return False, f"xnys_calendar_unavailable:{e}"
+
+    day = now_et.date()
+    sched = get_nyse_session_schedule_et(day)
+    if sched is None:
+        return False, "nyse_not_a_session_day"
+    mins = max(0, int(FAILSAFE_CLOSE_BEFORE_SESSION_MINUTES))
+    cutoff = sched.session_close_et - timedelta(minutes=mins)
+    if now_et >= cutoff:
+        return True, "ok"
+    return False, f"before_failsafe_cutoff want_>={cutoff.isoformat()}"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Moomoo broker fail-safe: flatten open positions.")
     parser.add_argument("--host", default=os.environ.get("MOOMOO_HOST", "127.0.0.1"))
@@ -219,7 +247,15 @@ def main() -> int:
         "--cutoff-et-minute",
         type=int,
         default=45,
-        help="Minute on US/Eastern clock for --require-after-et (default 45 → 3:45 PM)",
+        help="Minute for legacy fixed cutoff (--legacy-fixed-cutoff-et only)",
+    )
+    parser.add_argument(
+        "--legacy-fixed-cutoff-et",
+        action="store_true",
+        help=(
+            "Use Mon–Fri + fixed --cutoff-et-hour/minute for --require-after-et "
+            "(no XNYS calendar). Default is calendar-based fail-safe window."
+        ),
     )
     parser.add_argument(
         "--password",
@@ -256,13 +292,45 @@ def main() -> int:
             print("ERROR: zoneinfo not available; use Python 3.9+.", file=sys.stderr)
             return 1
         now_et = datetime.now(ZoneInfo("America/New_York"))
-        if not _us_weekday_after_cutoff(now_et, args.cutoff_et_hour, args.cutoff_et_minute):
-            print(
-                f"Abort: --require-after-et but now_et={now_et.isoformat()} "
-                f"is not a weekday after {args.cutoff_et_hour:02d}:{args.cutoff_et_minute:02d} ET.",
-                file=sys.stderr,
+        if args.legacy_fixed_cutoff_et:
+            ok = _us_weekday_after_cutoff(
+                now_et, args.cutoff_et_hour, args.cutoff_et_minute
             )
-            return 4
+            if not ok:
+                print(
+                    f"Abort: --require-after-et legacy cutoff "
+                    f"now_et={now_et.isoformat()} "
+                    f"not weekday after "
+                    f"{args.cutoff_et_hour:02d}:{args.cutoff_et_minute:02d} ET.",
+                    file=sys.stderr,
+                )
+                return 4
+        else:
+            ok, detail = _xnys_failsafe_cutoff_ok(now_et)
+            if not ok:
+                if detail.startswith("xnys_calendar_unavailable"):
+                    ok2 = _us_weekday_after_cutoff(
+                        now_et, args.cutoff_et_hour, args.cutoff_et_minute
+                    )
+                    if ok2:
+                        print(
+                            "WARN: XNYS calendar unavailable; using legacy "
+                            f"{args.cutoff_et_hour:02d}:{args.cutoff_et_minute:02d} ET cutoff.",
+                            file=sys.stderr,
+                        )
+                    else:
+                        print(
+                            f"Abort: --require-after-et {detail}; legacy cutoff also blocked.",
+                            file=sys.stderr,
+                        )
+                        return 4
+                else:
+                    print(
+                        f"Abort: --require-after-et ({detail}) "
+                        f"now_et={now_et.isoformat()}.",
+                        file=sys.stderr,
+                    )
+                    return 4
 
     if OpenSecTradeContext is None:
         print(

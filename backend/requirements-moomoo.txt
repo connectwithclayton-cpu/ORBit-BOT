@@ -1,3 +1,4 @@
 # Moomoo OpenAPI Python SDK — same pin as backend/requirements.txt for one-venv installs.
 # Upgrade OpenD + moomoo-api together per https://openapi.moomoo.com/ release notes for your region.
 moomoo-api==10.4.6408
+exchange-calendars==4.13.2

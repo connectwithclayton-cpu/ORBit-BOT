@@ -2,7 +2,7 @@
 
 This document provides a high-level visual of the live system architecture and the intraday execution workflow.
 
-Runtime session boundaries are evaluated in `America/New_York` and health snapshots are retained as local telemetry with rolling pruning.
+Runtime session boundaries are evaluated in `America/New_York` using **XNYS** (`exchange_calendars`) for open/close times (including early-close days). Primary bot flatten offset defaults to **15 minutes** before official session close (`FABIO_EOD_CLOSE_BEFORE_SESSION_MINUTES`). See [`EXCHANGE_CALENDAR.md`](EXCHANGE_CALENDAR.md). Health snapshots are retained as local telemetry with rolling pruning.
 
 ## System Architecture
 

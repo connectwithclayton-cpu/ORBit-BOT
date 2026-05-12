@@ -4,6 +4,8 @@ Copy/paste checklist to verify bot health, dashboard freshness behavior, and low
 
 Use the **Fabio_bot** project root (for example `~/Documents/TRADING/Fabio_bot` or your monorepo path such as `.../Cursor Projects/Fabio_bot`). From that directory, set `export PYTHONPATH=backend:frontend` (launchd installers in `portal/` set this for scheduled runs).
 
+Session and EOD clock rules (holidays, early close): [EXCHANGE_CALENDAR.md](EXCHANGE_CALENDAR.md).
+
 ## TL;DR
 
 ```bash
@@ -72,6 +74,23 @@ From each snapshot, inspect `ops`:
 - `dashboard_open_refresh_requests`
 - `dashboard_open_refresh_enqueued`
 - `dashboard_open_refresh_throttled`
+
+Also inspect `position_parity` (same NDJSON cadence as the rest of the snapshot):
+
+- **`parity_ok`**: `position_list_query` open option rows **in the configured Fabio symbol universe** match in-memory **`OrderManager`** / strategy book (`code` → contracts, qty &gt; 0).
+- **`query_ok`**: broker query succeeded; when `false`, treat parity as failing until connectivity recovers.
+- **`drifts`**: list of `{code, broker_qty, tracked_qty}` when the broker and tracked maps disagree.
+
+Log lines **`Position open — holding`** in `orb_bot_fabio.log` refer to **tracked** opens (session memory), **not** a live broker poll on every loop. Dashboard **open_positions** / reconcile pipelines use **Moomoo** as source of truth for the published ledger; stale **tracked** rows after closing outside the bot should show up as **`position_parity`** drift until you restart once the broker book is correct (see README operations).
+
+Manual broker vs canonical checks:
+
+```bash
+cd "/path/to/Fabio_bot"
+export PYTHONPATH=backend:frontend
+python3 backend/reconcile_moomoo_to_sheets.py --dry-run
+python3 backend/audit_full_positions.py
+```
 
 ## 5) Healthy vs warning patterns
 

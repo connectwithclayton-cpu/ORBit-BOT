@@ -29,18 +29,30 @@ if [[ ! -f "$AUDIT_PY" ]]; then
   exit 2
 fi
 
+EOD_FLAG=""
+if [[ "${1:-}" == "--eod" ]]; then
+  EOD_FLAG="--eod"
+fi
+
+if [[ -n "$EOD_FLAG" ]]; then
+  if ! "$PYTHON_BIN" -m fabio_live.calendar_gate should-run-sync-audit-eod; then
+    exit 0
+  fi
+else
+  if ! "$PYTHON_BIN" -m fabio_live.calendar_gate should-run-sync-audit-intraday; then
+    exit 0
+  fi
+fi
+
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   # Existing run still active; skip this cycle to prevent pressure.
   exit 0
 fi
 trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
 
-EOD_FLAG=""
-if [[ "${1:-}" == "--eod" ]]; then
-  EOD_FLAG="--eod"
-fi
-
 # Timeout guard ensures the audit cannot block other system activities.
+AUDIT_STATUS=0
+set +o errexit
 if command -v timeout >/dev/null 2>&1; then
   timeout "${RUNTIME_BUDGET_SEC}" "$PYTHON_BIN" "$AUDIT_PY" \
     --lookback-min "$LOOKBACK_MIN" \
@@ -50,6 +62,7 @@ if command -v timeout >/dev/null 2>&1; then
     --alert-after-failures "$ALERT_AFTER_FAILURES" \
     --jitter-max-sec "$JITTER_MAX_SEC" \
     $EOD_FLAG
+  AUDIT_STATUS=$?
 else
   "$PYTHON_BIN" "$AUDIT_PY" \
     --lookback-min "$LOOKBACK_MIN" \
@@ -59,4 +72,11 @@ else
     --alert-after-failures "$ALERT_AFTER_FAILURES" \
     --jitter-max-sec "$JITTER_MAX_SEC" \
     $EOD_FLAG
+  AUDIT_STATUS=$?
 fi
+set -o errexit
+
+if [[ -n "$EOD_FLAG" && "$AUDIT_STATUS" -eq 0 ]]; then
+  "$PYTHON_BIN" -m fabio_live.calendar_gate stamp-sync-audit-eod || true
+fi
+exit "${AUDIT_STATUS}"

@@ -19,7 +19,9 @@ Implementation is split under `fabio_live/` (regime, signals, orders, async ops,
 import os
 import time
 import traceback
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
@@ -86,6 +88,14 @@ def _escalate_runtime_failure(msg: str) -> None:
         print(f"[RuntimeGuard] Sheets alert failed: {e}")
 
 
+def _calendar_allows_manual_start() -> bool:
+    if os.getenv("FABIO_IGNORE_NYSE_CALENDAR", "").strip() == "1":
+        return True
+    from fabio_live.calendar_gate import should_start_bot
+
+    return should_start_bot()
+
+
 def run_bot_with_guard(bot_factory=ORBBot, sleep_fn=time.sleep) -> int:
     """
     Run bot with restart/backoff protection.
@@ -93,6 +103,15 @@ def run_bot_with_guard(bot_factory=ORBBot, sleep_fn=time.sleep) -> int:
       0 = clean stop
       1 = hard failure after restart budget exhausted
     """
+    if not _calendar_allows_manual_start():
+        tz = ZoneInfo("America/New_York")
+        d = datetime.now(tz).date().isoformat()
+        print(
+            f"[Calendar] FABIO skip: NYSE closed {d} ({tz.key}). "
+            "See portal/docs/EXCHANGE_CALENDAR.md. Override: FABIO_IGNORE_NYSE_CALENDAR=1"
+        )
+        return 0
+
     max_restarts, backoff_base_sec, backoff_cap_sec = _runtime_guard_config()
     attempt = 0
 

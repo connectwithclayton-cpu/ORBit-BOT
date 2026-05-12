@@ -1380,7 +1380,10 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
           <li>Profit lock at 1.2x entry premium; trims and hard stop still active.</li>
           <li>Hard stop: 2x daily ATR adverse move from entry stock price.</li>
           <li>Trim ladder: 2x, 4x, 8x multiples; trim 50% of remaining contracts.</li>
-          <li>EOD close at/after 15:45 ET.</li>
+          <li>
+            Primary bot EOD flatten: FABIO_EOD_CLOSE_BEFORE_SESSION_MINUTES (default 15) before
+            official XNYS session close; early-close days follow the exchange calendar.
+          </li>
         </ul>
       </div>
       <div class="rules-section">

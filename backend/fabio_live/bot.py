@@ -6,6 +6,7 @@ import datetime
 import json
 import re
 import time
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -44,7 +45,6 @@ from fabio_live.constants import (
     PROFIT_LOCK_MULTIPLE,
     RESEARCH_RISK_CAP_MULTIPLIER,
     RISK_PCT_MAX,
-    SIGNAL_END_HOUR,
     STRATEGY_CAPITAL,
     SYMBOLS,
     VIX_AGGRESSIVE_MAX,
@@ -61,6 +61,7 @@ from fabio_live.market_data import (
 from fabio_live.orders import OrderManager
 from fabio_live.regime import MarketRegime
 from fabio_live.signals import SignalEngine
+from fabio_live.us_equity_calendar import get_session_schedule_for_now_et
 
 # Stable pause reason codes for startup / feed gates (logged + surfaced in status).
 PAUSE_REASON_RECONCILE_QUERY_FAILED = "reconcile_query_failed"
@@ -69,6 +70,112 @@ PAUSE_REASON_RECONCILE_AUTO_ADOPT_NONE = "reconcile_auto_adopt_none"
 PAUSE_REASON_RECONCILE_EXCEPTION = "reconcile_exception"
 PAUSE_REASON_VIX_UNAVAILABLE = "vix_unavailable"
 PAUSE_REASON_MANUAL_OPERATOR = "manual_operator"
+
+
+def _default_position_parity_state() -> dict[str, Any]:
+    return {
+        "ok": True,
+        "parity_ok": True,
+        "query_ok": False,
+        "query_ret": None,
+        "query_error": "init",
+        "drift_count": 0,
+        "drifts": [],
+        "broker_codes": {},
+        "tracked_codes": {},
+        "checked_at_ts": "",
+    }
+
+
+def _broker_fabio_option_qty_map(
+    pos_df: pd.DataFrame | None, fabio_underlyings_upper: set[str]
+) -> dict[str, int]:
+    """Aggregate qty>0 option rows whose underlying is in the Fabio universe."""
+    out: dict[str, int] = {}
+    if pos_df is None or pos_df.empty:
+        return out
+    for _, row in pos_df.iterrows():
+        try:
+            q = int(float(row.get("qty", 0) or 0))
+        except (TypeError, ValueError):
+            q = 0
+        if q <= 0:
+            continue
+        code = str(row.get("code", "") or "")
+        sym, _ = ORBBot._parse_option_code(code)
+        if sym and sym.upper() in fabio_underlyings_upper:
+            out[code] = out.get(code, 0) + q
+    return out
+
+
+def _tracked_option_qty_map(tracked_positions: dict[str, dict]) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for pos in tracked_positions.values():
+        code = str(pos.get("code", "") or "")
+        if not code:
+            continue
+        try:
+            q = int(float(pos.get("remaining_qty", 0) or 0))
+        except (TypeError, ValueError):
+            q = 0
+        if q <= 0:
+            continue
+        out[code] = q
+    return out
+
+
+def compute_position_parity_state(
+    pos_df: pd.DataFrame | None,
+    tracked_positions: dict[str, dict],
+    fabio_symbols: set[str],
+    *,
+    query_ok: bool = True,
+    query_ret: int | None = None,
+    query_error: str = "",
+) -> dict[str, Any]:
+    """
+    Compare Moomoo open option rows (Fabio universe) to OrderManager in-memory positions.
+
+    ``ok`` / ``parity_ok`` are True when broker and tracked qty match for every involved code.
+    """
+    tz = ZoneInfo(MARKET_TIMEZONE)
+    checked_at = datetime.datetime.now(tz).isoformat(timespec="seconds")
+    fabio_u = {s.upper() for s in fabio_symbols}
+    if not query_ok:
+        return {
+            "ok": False,
+            "parity_ok": False,
+            "query_ok": False,
+            "query_ret": query_ret,
+            "query_error": query_error or "query_failed",
+            "drift_count": 0,
+            "drifts": [],
+            "broker_codes": {},
+            "tracked_codes": _tracked_option_qty_map(tracked_positions),
+            "checked_at_ts": checked_at,
+        }
+    broker_map = _broker_fabio_option_qty_map(pos_df, fabio_u)
+    tracked_map = _tracked_option_qty_map(tracked_positions)
+    all_codes = set(broker_map) | set(tracked_map)
+    drifts = []
+    for code in sorted(all_codes):
+        bq = broker_map.get(code, 0)
+        tq = tracked_map.get(code, 0)
+        if bq != tq:
+            drifts.append({"code": code, "broker_qty": bq, "tracked_qty": tq})
+    parity_ok = len(drifts) == 0
+    return {
+        "ok": parity_ok,
+        "parity_ok": parity_ok,
+        "query_ok": True,
+        "query_ret": int(query_ret if query_ret is not None else 0),
+        "query_error": "",
+        "drift_count": len(drifts),
+        "drifts": drifts,
+        "broker_codes": dict(sorted(broker_map.items())),
+        "tracked_codes": dict(sorted(tracked_map.items())),
+        "checked_at_ts": checked_at,
+    }
 
 
 class ORBBot:
@@ -105,6 +212,8 @@ class ORBBot:
         self._data_health = {}
         self._data_health_log_every_sec = 600
         self._health_snapshot_last_ts = 0.0
+        self._position_parity_latest: dict[str, Any] = _default_position_parity_state()
+        self._parity_alert_last_ts = 0.0
         self._loop_cadence_mode = "idle"
         self._loop_sleep_sec = 60.0
         self._tz = ZoneInfo(MARKET_TIMEZONE)
@@ -692,6 +801,79 @@ class ORBBot:
             f"When paused by reconcile/VIX: fix root cause before relying on /resume alone."
         )
 
+    def _refresh_position_parity(self) -> None:
+        fabio = {s.upper() for s in SYMBOLS}
+        try:
+            ret, pos_df = self.trade_ctx.position_list_query(
+                trd_env=self.order_mgr.trd_env
+            )
+            if ret != 0:
+                state = compute_position_parity_state(
+                    None,
+                    self.order_mgr.positions,
+                    fabio,
+                    query_ok=False,
+                    query_ret=ret,
+                    query_error="position_list_query_nonzero_ret",
+                )
+            else:
+                state = compute_position_parity_state(
+                    pos_df,
+                    self.order_mgr.positions,
+                    fabio,
+                )
+            self._position_parity_latest = state
+            self._maybe_alert_position_parity(state)
+        except Exception as e:
+            state = compute_position_parity_state(
+                None,
+                self.order_mgr.positions,
+                fabio,
+                query_ok=False,
+                query_ret=None,
+                query_error=str(e),
+            )
+            self._position_parity_latest = state
+            self._maybe_alert_position_parity(state)
+
+    def _maybe_alert_position_parity(self, state: dict[str, Any]) -> None:
+        if bool(state.get("query_ok")) and bool(state.get("ok")):
+            return
+        compact = {
+            "parity_ok": state.get("parity_ok"),
+            "query_ok": state.get("query_ok"),
+            "query_ret": state.get("query_ret"),
+            "query_error": state.get("query_error"),
+            "drift_count": state.get("drift_count"),
+            "drifts": state.get("drifts"),
+        }
+        log_line = json.dumps(compact, separators=(",", ":"), default=str)
+        if len(log_line) > 1800:
+            log_line = log_line[:1800] + "…"
+        self.ops.log_alert("POSITION_PARITY", log_line, "")
+        now_ts = time.time()
+        if now_ts - self._parity_alert_last_ts < OPS_ALERT_COOLDOWN_SEC:
+            return
+        self._parity_alert_last_ts = now_ts
+        if not state.get("query_ok"):
+            warn = (
+                "⚠️ <b>POSITION_PARITY</b>\n"
+                f"Broker query failed: ret={state.get('query_ret')} "
+                f"| {state.get('query_error')}"
+            )
+        else:
+            drift_preview = json.dumps(state.get("drifts"), separators=(",", ":"), default=str)
+            if len(drift_preview) > 900:
+                drift_preview = drift_preview[:900] + "…"
+            warn = (
+                "⚠️ <b>POSITION_PARITY drift</b>\n"
+                "Moomoo open options (Fabio universe) disagree with tracked "
+                f"<code>OrderManager</code> book. drift_count="
+                f"{state.get('drift_count')}<pre>{drift_preview}</pre>"
+            )
+        print(f"  [POSITION_PARITY] {log_line[:240]}")
+        self.ops.alert(warn)
+
     def _write_health_snapshot(self, snapshot: dict):
         try:
             with open(HEALTH_SNAPSHOT_PATH, "a", encoding="utf-8") as fh:
@@ -705,6 +887,7 @@ class ORBBot:
             now_ts - self._health_snapshot_last_ts < HEALTH_SNAPSHOT_INTERVAL_SEC
         ):
             return
+        self._refresh_position_parity()
         ops_h = self.ops.health()
         snapshot = {
             "ts": self._now_market().isoformat(timespec="seconds"),
@@ -759,8 +942,14 @@ class ORBBot:
                 }
                 for (sym, tf), v in self._data_health.items()
             },
+            "position_parity": dict(self._position_parity_latest),
         }
         self._write_health_snapshot(snapshot)
+        pp = snapshot["position_parity"]
+        pp_note = (
+            f" parity_ok={pp.get('parity_ok')} query_ok={pp.get('query_ok')}"
+            f" drift_count={pp.get('drift_count')}"
+        )
         self.ops.log_alert(
             "HEALTH_SNAPSHOT",
             f"queue={snapshot['ops']['queue_depth']}/{snapshot['ops']['queue_max']} "
@@ -770,7 +959,8 @@ class ORBBot:
             f"{snapshot['ops']['dashboard_intraday_refresh_requests']} "
             f"open={snapshot['ops']['dashboard_open_refresh_enqueued']}/"
             f"{snapshot['ops']['dashboard_open_refresh_requests']} "
-            f"cadence={snapshot['ops']['loop_cadence_mode']}@{snapshot['ops']['loop_sleep_sec']:.0f}s",
+            f"cadence={snapshot['ops']['loop_cadence_mode']}@{snapshot['ops']['loop_sleep_sec']:.0f}s"
+            f"{pp_note}",
             "",
         )
         self._health_snapshot_last_ts = now_ts
@@ -1563,23 +1753,51 @@ class ORBBot:
 
     def run(self):
         now = self._now_market()
-        or_open = now.replace(hour=9, minute=30, second=0, microsecond=0)
-        or_close = now.replace(hour=9, minute=45, second=0, microsecond=0)
-        signal_end = now.replace(hour=SIGNAL_END_HOUR, minute=0, second=0, microsecond=0)
-        eod_close = now.replace(hour=15, minute=45, second=0, microsecond=0)
-        eod_log = now.replace(hour=16, minute=0, second=0, microsecond=0)
-        market_close = now.replace(hour=16, minute=0, second=0, microsecond=0)
+        sched = get_session_schedule_for_now_et(now)
+        if sched is None:
+            td = now.date().isoformat()
+            print(
+                f"  [Calendar] NYSE closed {td} ({MARKET_TIMEZONE}). "
+                "Exiting without trading loop."
+            )
+            self._emit_health_snapshot(force=True)
+            self.ops.stop(timeout=8.0)
+            self.quote_ctx.close()
+            self.trade_ctx.close()
+            return
+
+        or_open = sched.session_open_et
+        or_close = sched.or_end_et
+        signal_end = sched.effective_signal_end_et
+        eod_close = sched.eod_force_flatten_et
+        eod_log = sched.eod_summary_et
+        market_close = sched.market_close_et
         _eod_closed = False
         _eod_logged = False
 
+        o_s = or_open.strftime("%H:%M")
+        c_s = market_close.strftime("%H:%M")
+        sig_s = signal_end.strftime("%H:%M")
+        eod_s = eod_close.strftime("%H:%M")
+        log_s = eod_log.strftime("%H:%M")
+
         if now < or_open:
-            print("  Waiting for market open (9:30)...")
+            print(f"  Waiting for market open ({o_s} {MARKET_TIMEZONE})...")
         elif now <= signal_end:
-            print("  Market open — running signal + exit loops.")
+            print(
+                f"  Market open — signal + exit loops "
+                f"(entries through {sig_s}; session close {c_s})."
+            )
         elif now < market_close:
-            print("  Market open (PM management window) — running exit loop only.")
+            print(
+                f"  Market open (PM management) — exit loop only "
+                f"until ~{eod_s} flatten / {c_s} close."
+            )
         else:
-            print("  Post-close startup — running EOD handling.")
+            print(
+                f"  Post-close startup — EOD handling "
+                f"(session closed {c_s}; summary from {log_s})."
+            )
 
         while True:
             now = self._now_market()
@@ -1613,7 +1831,10 @@ class ORBBot:
 
             if now >= eod_close and not _eod_closed:
                 self.eod_close_all()
-                print("\n  [EOD] Positions closed. Waiting until 4:00 PM to log...")
+                print(
+                    f"\n  [EOD] Positions closed. Waiting until {log_s} "
+                    f"{MARKET_TIMEZONE} to log summary..."
+                )
                 self.regimes.clear()
                 self.exit_tfs.clear()
                 self.cb.reset()

@@ -381,7 +381,8 @@ def _severity_from_failures(
 
 
 def _market_hours_et(now_et: dt.datetime) -> bool:
-    # Weekdays only; no holiday calendar in this lightweight runner.
+    # Lightweight heuristic for intraday classification inside this script only.
+    # Launchd wrappers use fabio_live.calendar_gate + XNYS for holidays / session bounds.
     if now_et.weekday() >= 5:
         return False
     return (now_et.hour > 9 or (now_et.hour == 9 and now_et.minute >= 30)) and (

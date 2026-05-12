@@ -67,6 +67,23 @@ HEALTH_SNAPSHOT_INTERVAL_SEC = 600
 HEALTH_SNAPSHOT_PATH = str(_ROOT / "bot_health_snapshots.jsonl")
 HEALTH_SNAPSHOT_RETENTION_DAYS = 14
 MARKET_TIMEZONE = "America/New_York"
+# NYSE session schedule (XNYS via exchange-calendars). See portal/docs/EXCHANGE_CALENDAR.md.
+# Primary bot flatten (eod_close_all): default 15 min before official session close — matches
+# legacy fixed 15:45 ET vs 16:00 regular close. Override with FABIO_EOD_CLOSE_BEFORE_SESSION_MINUTES.
+EOD_CLOSE_BEFORE_SESSION_MINUTES = int(
+    os.getenv("FABIO_EOD_CLOSE_BEFORE_SESSION_MINUTES", "15")
+)
+# Separate from primary bot: post-close broker fail-safe (moomoo_eod_failsafe.py) window.
+FAILSAFE_CLOSE_BEFORE_SESSION_MINUTES = int(
+    os.getenv("FABIO_FAILSAFE_CLOSE_BEFORE_SESSION_MINUTES", "10")
+)
+EOD_SUMMARY_AFTER_SESSION_CLOSE_MINUTES = int(
+    os.getenv("FABIO_EOD_SUMMARY_AFTER_SESSION_CLOSE_MINUTES", "1")
+)
+SIGNAL_END_BUFFER_BEFORE_SESSION_CLOSE_MINUTES = int(
+    os.getenv("FABIO_SIGNAL_END_BUFFER_BEFORE_SESSION_CLOSE_MINUTES", "5")
+)
+OPENING_RANGE_DURATION_MINUTES = int(os.getenv("FABIO_OPENING_RANGE_DURATION_MINUTES", "15"))
 ENTRY_STALE_BLOCK_SEC = 10 * 60
 TELEGRAM_CMD_MIN_INTERVAL_SEC = 2.0
 TELEGRAM_STOP_CONFIRM_TTL_SEC = 30

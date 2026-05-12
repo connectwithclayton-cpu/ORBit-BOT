@@ -1,8 +1,8 @@
 #!/bin/bash
 # install_sync_audit_scheduler.sh
 # Installs launchd jobs for read-only sync audits:
-# - Every 15 min during regular weekdays (market-hour bounded in script)
-# - One post-close EOD confirmation run
+# - Weekday calendar triggers; gates inside run_moomoo_sync_audit.sh (NYSE session-aware)
+# - EOD confirmation after regular session closes (XNYS)—see portal/docs/EXCHANGE_CALENDAR.md
 
 set -euo pipefail
 
@@ -192,11 +192,11 @@ cat > "$PLIST_EOD" << EOF
   <string>$BOT_DIR</string>
   <key>StartCalendarInterval</key>
   <array>
-    <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>3</integer></dict>
-    <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>3</integer></dict>
-    <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>3</integer></dict>
-    <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>3</integer></dict>
-    <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>3</integer></dict>
+    <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>17</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>17</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>17</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>17</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>17</integer><key>Minute</key><integer>10</integer></dict>
   </array>
   <key>RunAtLoad</key><false/>
   <key>KeepAlive</key><false/>
@@ -212,8 +212,8 @@ launchctl load "$PLIST_15"
 launchctl load "$PLIST_EOD"
 
 echo "✅ Sync audit schedulers installed."
-echo "  15m label: com.claytonorb.fabio.syncaudit.15m"
-echo "  EOD label: com.claytonorb.fabio.syncaudit.eod"
+echo "  15m label: com.claytonorb.fabio.syncaudit.15m (session-gated in run_moomoo_sync_audit.sh)"
+echo "  EOD label: com.claytonorb.fabio.syncaudit.eod — 17:10 America/New_York (post session close)"
 echo "  Log: $OUT_LOG"
 echo "  Uninstall:"
 echo "    launchctl unload $PLIST_15 && rm $PLIST_15"
