@@ -348,6 +348,7 @@ Precedence notes:
 - Successful reconcile sets `backend/trade_data.json` → `open_positions` from FIFO/Open Inventory **after** broker vs FIFO inventory matches.
 - Bot-only EOD (without reconcile) sets open positions from Moomoo `position_list_query`.
 - `RECONCILE_MISMATCH` skips **both** dashboard persistence and canonical tab replaces until resolved.
+- If `position_list_query` returns **no rows** for SIMULATE while FIFO still infers opens (often OpenD paper), set **`FABIO_RECONCILE_TRUST_FIFO_IF_BROKER_QUERY_EMPTY=1`** and rerun reconcile so **closed trades**, **Broker Fills**, **Reconciled Trades**, and **Open Inventory** publish; dashboard **`open_positions`** stays empty until broker rows return. With **`FABIO_STRICT_BROKER_POSITION_GATE=1`**, also set **`FABIO_RECONCILE_TRUST_FIFO_IF_BROKER_ROWS_ALL_ZERO_QTY=1`**.
 
 Full-history consistency check:
 

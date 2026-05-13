@@ -11,6 +11,11 @@ Dry-run: prints intended actions only — does not append Trades, write backend/
 HTML, or replace canonical tabs. If broker open inventory disagrees with FIFO, exits before
 dashboard save except when broker returns only zero-qty position rows (“ghost snapshot”):
 then FIFO opens are used for the gate by default (see FABIO_STRICT_BROKER_POSITION_GATE).
+If every successful ``position_list_query`` returns an empty dataframe but FIFO still infers
+opens (OpenD paper visibility bug), set ``FABIO_RECONCILE_TRUST_FIFO_IF_BROKER_QUERY_EMPTY=1``
+to align the gate to FIFO (dashboard ``open_positions`` stay empty/broker-only); with
+``FABIO_STRICT_BROKER_POSITION_GATE=1`` also set
+``FABIO_RECONCILE_TRUST_FIFO_IF_BROKER_ROWS_ALL_ZERO_QTY=1``.
 """
 
 from __future__ import annotations
@@ -532,6 +537,9 @@ def _fetch_broker_open_inventory_with_meta() -> Tuple[Dict[str, int], Dict[str, 
                 )
             empty_meta = {
                 "ghost_only_snapshot": False,
+                # All queries succeeded but every dataframe was empty (distinct from
+                # ghost_only_snapshot: rows returned with zero effective qty).
+                "empty_ok_snapshot": not bool(any_bad),
                 "nrow_total": nrow_total,
                 "per_query": per_q,
                 "acc_source": acc_source_tag,
@@ -569,6 +577,7 @@ def _fetch_broker_open_inventory_with_meta() -> Tuple[Dict[str, int], Dict[str, 
         out_plain = dict(out)
         snap_meta: Dict[str, Any] = {
             "ghost_only_snapshot": bool(nrow_total > 0 and len(out_plain) == 0),
+            "empty_ok_snapshot": False,
             "nrow_total": nrow_total,
             "per_query": per_q,
             "supplement_acc_id_0_done": bool(acc_ids_used is not None and _supplement_acc0),
@@ -974,6 +983,12 @@ def main():
         ).strip().lower()
         in ("1", "true", "yes")
     )
+    env_trust_fifo_on_broker_query_empty = (
+        os.getenv("FABIO_RECONCILE_TRUST_FIFO_IF_BROKER_QUERY_EMPTY", "")
+        .strip()
+        .lower()
+        in ("1", "true", "yes")
+    )
     if broker_snap_meta.get("ghost_only_snapshot"):
         print(
             "[reconcile] Broker position_list_query returned rows, but each line had qty 0 "
@@ -1021,6 +1036,37 @@ def main():
         )
         if logger.is_connected():
             logger.log_alert("RECONCILE_GATE_FIFO_TRUST", trust_msg, "")
+        broker_open = dict(computed_open)
+        broker_keys = set(broker_open.keys())
+        mismatch = broker_keys != comp_keys or any(
+            _safe_int(broker_open.get(k, 0)) != _safe_int(computed_open.get(k, 0))
+            for k in broker_keys.union(comp_keys)
+        )
+
+    allow_fifo_trust_on_empty = (
+        bool(computed_open)
+        and bool(broker_snap_meta.get("empty_ok_snapshot"))
+        and env_trust_fifo_on_broker_query_empty
+        and ((not strict_broker_gate) or env_trust_fifo_on_ghost_snap)
+    )
+    if mismatch and allow_fifo_trust_on_empty:
+        mode = (
+            "explicit env FABIO_RECONCILE_TRUST_FIFO_IF_BROKER_QUERY_EMPTY "
+            "(strict broker gate; also requires FABIO_RECONCILE_TRUST_FIFO_IF_BROKER_ROWS_ALL_ZERO_QTY)"
+            if strict_broker_gate
+            else "FABIO_RECONCILE_TRUST_FIFO_IF_BROKER_QUERY_EMPTY (non-strict gate)"
+        )
+        trust_msg = (
+            "RECONCILE gate: position_list_query returned no rows but FIFO infers open inventory; "
+            f"using FIFO-derived opens for gate only. {mode}."
+        )
+        print(f"[reconcile] {trust_msg}")
+        print(
+            "[reconcile] backend/trade_data.json/HTML open_positions will remain broker-only (empty); "
+            "closed trades + Open Inventory tab still reflect FIFO from Moomoo fills."
+        )
+        if logger.is_connected():
+            logger.log_alert("RECONCILE_GATE_FIFO_TRUST_EMPTY_QUERY", trust_msg, "")
         broker_open = dict(computed_open)
         broker_keys = set(broker_open.keys())
         mismatch = broker_keys != comp_keys or any(
