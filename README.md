@@ -234,7 +234,7 @@ Written to the **current working directory** when you run the script (usually th
 | `backend/config.py` | Shared configuration for live tooling |
 | `backend/backtest/FabioOrb_copy_backtest.py` | Compatibility alias to canonical research backtest |
 | `backend/backtest/Fabio_live_mirror_backtest.py` | Legacy live-mirror backtest (`BacktestMode.LIVE_MIRROR`) |
-| `frontend/dashboard_writer.py`, `backend/trade_data.json`, `frontend/live_dashboard.html` | Dashboard pipeline |
+| `frontend/dashboard_writer.py`, `backend/trade_data.json`, `frontend/live_dashboard.html`, `frontend/fabio_live_dashboard.html` | Dashboard pipeline (`live_dashboard.html` is a **committed** shareable snapshot with inlined data; `fabio_live_dashboard.html` is gitignored and regenerated locally beside it) |
 | `backend/telegram_bot.py`, `frontend/sheets_logger.py` | Notifications / logging |
 
 Persistent dashboard/trade JSON lives only at **`backend/trade_data.json`** (`dashboard_writer`, `reconcile_moomoo_to_sheets`, `verify_trades`).
@@ -485,6 +485,14 @@ Push dashboard to GitHub Pages (optional publish path):
 ```bash
 bash portal/push_dashboard.sh
 ```
+
+### Shared `live_dashboard.html` (collaborators)
+
+The file **`frontend/live_dashboard.html`** is tracked in Git as a **static snapshot**: all chart/table data is **inlined** in the HTML, so someone who clones the repo can open it directly in a browser (double‑click the file, **File → Open**, or `open frontend/live_dashboard.html` on macOS) with no server and no `trade_data.json` required for viewing.
+
+To **refresh** the snapshot after trading or reconcile, regenerate the dashboard (live bot, `reconcile_moomoo_to_sheets.py`, or any path that invokes `DashboardWriter`), then **commit** the updated `frontend/live_dashboard.html` when you want collaborators to see the new view. **`portal/push_dashboard.sh`** defaults to copying this same file into your `orb-live-dashboard` repo for GitHub Pages.
+
+**Privacy:** The HTML embeds trade and P&amp;L detail. For a **public** repository, only commit snapshots you are willing to expose; use a private repo or a redacted export if needed.
 
 ### Incident triage quick paths
 

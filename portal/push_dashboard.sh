@@ -2,9 +2,10 @@
 # push_dashboard.sh — Sync Fabio live dashboard to GitHub Pages.
 # Runs automatically at 12:00 PM and 3:55 PM ET Mon–Fri via launchd.
 # Can also be run manually: bash portal/push_dashboard.sh (from Fabio_bot root).
+# Default LIVE_SRC: tracked snapshot at frontend/live_dashboard.html (override with env).
 
 FABIO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LIVE_SRC="${LIVE_SRC:-$HOME/Documents/TRADING/fabio_live_dashboard.html}"
+LIVE_SRC="${LIVE_SRC:-$FABIO_ROOT/frontend/live_dashboard.html}"
 BACKTEST_SRC="${BACKTEST_SRC:-$HOME/Documents/TRADING/orb_vs_fabio_dashboard.html}"
 REPO_DIR="${REPO_DIR:-$HOME/Documents/TRADING/orb-live-dashboard}"
 LOG="$FABIO_ROOT/dashboard_push.log"
