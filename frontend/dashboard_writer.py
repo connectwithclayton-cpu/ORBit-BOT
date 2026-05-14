@@ -553,15 +553,6 @@ header {
 .dashboard-section-head .section-caption {
   font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.35;
 }
-.trade-log-section-head {
-  margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
-}
-.trade-log-section-head .section-title {
-  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text);
-}
-.trade-log-section-head .section-caption {
-  font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.35;
-}
 
 /* Trading view: same surface + controls language as table-card / filters */
 .trading-view-panel {
@@ -746,15 +737,48 @@ header {
 }
 .table-header h3 { font-size: 13px; font-weight: 600; color: var(--muted);
                    text-transform: uppercase; letter-spacing: 0.5px; }
-.filters { display: flex; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+.filters { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; align-items: center; }
 .filter-select {
-  background: var(--bg); color: var(--text); border: 1px solid var(--border);
-  border-radius: 6px; padding: 10px 12px; font-size: 13px; cursor: pointer;
-  outline: none; min-height: 44px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: rgba(255, 255, 255, 0.045);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5L5 7l3-3.5' fill='none' stroke='%23999' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  background-size: 10px 10px;
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  padding: 7px 32px 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  cursor: pointer;
+  outline: none;
+  min-height: 38px;
+  min-width: 0;
+  max-width: 100%;
   touch-action: manipulation;
-  -webkit-tap-highlight-color: rgba(79,195,247,0.15);
+  -webkit-tap-highlight-color: rgba(79, 195, 247, 0.15);
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
-.filter-select:focus { border-color: #444; }
+.filter-select:hover {
+  background-color: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.filter-select:focus-visible {
+  border-color: rgba(79, 195, 247, 0.55);
+  box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.18);
+}
+@media (pointer: coarse) {
+  .filter-select {
+    min-height: 44px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+}
 
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead th {
@@ -919,19 +943,49 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 .trade-day-section:last-child {
   margin-bottom: 0;
 }
-.trade-day-head {
+.trade-day-head-bar {
   display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+.trade-day-title {
+  display: inline-flex;
   align-items: baseline;
   gap: 12px;
-  padding: 8px 4px 12px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 12px;
-  font-size: 13px;
+  flex-wrap: wrap;
 }
-.trade-day-head .muted {
-  color: var(--muted);
-  font-weight: 500;
+.trade-day-title strong {
+  color: var(--text);
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.trade-day-net {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.trade-day-head-bar .muted {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 .trade-day-more-btn {
   display: inline-block;
@@ -1025,7 +1079,6 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   }
   .kpi-card { padding: 14px 12px; }
   .kpi-value { font-size: clamp(1.125rem, 6vw, 1.625rem); }
-  .trade-log-section-head { margin-top: 20px; }
   .table-card { padding: 14px 12px; border-radius: 10px; }
   .table-header {
     flex-direction: column;
@@ -1079,7 +1132,7 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
       <div class="header-title">ORBit Bot <span style="color:var(--muted);font-weight:400">— Live Dashboard</span></div>
       <button type="button" class="header-btn" id="rulesBtn">Ruleset</button>
     </div>
-    <div class="header-sub" style="margin-top:4px">SPY · QQQ · NVDA &nbsp;|&nbsp; 0-1DTE Options &nbsp;|&nbsp; ORB Strategy</div>
+    <div class="header-sub" style="margin-top:4px">SPY · QQQ · NVDA &nbsp;|&nbsp; 0-1DTE Options &nbsp;|&nbsp; ORB Strategy &nbsp;|&nbsp; Initial Capital $10,000</div>
   </div>
     <div class="header-right">
     <div class="header-top-row" style="margin-bottom:6px">
@@ -1250,11 +1303,6 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   </div><!-- /perf-body -->
   </div><!-- /performance-analytics-panel -->
 
-  <section class="trade-log-section-head" aria-label="Trade log">
-    <div class="section-title">Trade log</div>
-    <div class="section-caption">Closed fills — grouped by position by default.</div>
-  </section>
-
   <!-- Filled Trades Table -->
   <div class="table-card">
     <div class="table-header">
@@ -1275,7 +1323,7 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
           <option>CALL</option><option>PUT</option>
         </select>
         <select class="filter-select" id="filterTrend" onchange="renderTable()">
-          <option value="">All trends</option>
+          <option value="">All Trends</option>
           <option value="BULL">Bull</option>
           <option value="BEAR">Bear</option>
         </select>
@@ -2355,6 +2403,14 @@ function renderTable() {
       + '</div>';
   }
 
+  function positionNetForGroup(g) {
+    const legs = g.legs;
+    const closeLeg = [...legs].reverse().find(l => (l.ledger_leg || 'CLOSE') === 'CLOSE') || legs[legs.length - 1];
+    const sess = closeLeg && isSessionTrade(closeLeg);
+    const sortedForPnl = sortLegsWithinGroup(legs);
+    return sess ? resolvePositionPnl(sortedForPnl, closeLeg) : 0;
+  }
+
   if (viewMode === 'flat') {
     if (groupedMount) { groupedMount.innerHTML = ''; groupedMount.style.display = 'none'; }
     if (flatMount) flatMount.style.display = 'block';
@@ -2415,14 +2471,21 @@ function renderTable() {
   document.getElementById('rowCount').textContent =
     '(' + groups.length + ' positions · ' + legTotal + ' legs · ' + trades.length + ' rows)';
 
-  groupedMount.innerHTML = daysSorted.map(day => {
+  groupedMount.innerHTML = daysSorted.map(function (day) {
     const dayGroups = byDay.get(day).slice().sort((a, b) =>
       groupLatestSortKey(b.legs).localeCompare(groupLatestSortKey(a.legs)));
+    let dayNet = 0;
+    for (let gi = 0; gi < dayGroups.length; gi++) dayNet += positionNetForGroup(dayGroups[gi]);
+    const dayNetCls = dayNet >= 0 ? 'pnl-pos' : 'pnl-neg';
     let html = '<div class="trade-day-section">'
-      + '<div class="trade-day-head"><strong>' + day + '</strong>'
-      + '<span class="muted">' + dayGroups.length + ' positions</span></div>';
+      + '<div class="trade-day-head-bar" role="group" aria-label="' + day + ', ' + dayGroups.length + ' positions, day net ' + fmtPnl(dayNet) + '">'
+      + '<span class="trade-day-title"><strong>' + day + '</strong>'
+      + '<span class="muted">' + dayGroups.length + ' positions</span></span>'
+      + '<span class="trade-day-net ' + dayNetCls + '">' + fmtPnl(dayNet) + '</span>'
+      + '</div>'
+      + '<div class="trade-day-body">';
     html += dayGroups.map(renderOneGroupCard).join('');
-    html += '</div>';
+    html += '</div></div>';
     return html;
   }).join('');
 }
