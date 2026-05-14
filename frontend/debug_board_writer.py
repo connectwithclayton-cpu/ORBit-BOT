@@ -310,14 +310,11 @@ const DATA = JSON.parse(document.getElementById('fabio-debug-json').textContent)
 
 (function () {
   (function () {
-    const b = DATA.beta_identity;
     const badge = document.getElementById('betaBadge');
-    if (badge && b && b.badge_label) badge.textContent = b.badge_label;
+    if (badge) badge.textContent = 'BETA';
   })();
   document.getElementById('hdr-meta').textContent =
-    'Generated ' + DATA.generated_at + ' · git ' + DATA.git_rev
-    + (DATA.beta_identity && DATA.beta_identity.running_branch
-      ? ' · ' + DATA.beta_identity.running_branch : '');
+    'Generated ' + DATA.generated_at + ' · git ' + DATA.git_rev;
 
   if (DATA.config_error) {
     document.getElementById('sec-err').style.display = 'block';

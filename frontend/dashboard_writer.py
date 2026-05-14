@@ -1067,6 +1067,8 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     width: 100%;
   }
 }
+/* Older cached builds may still ship #betaGitMeta; keep hidden before/without JS. */
+#betaGitMeta { display: none !important; }
 </style>
 </head>
 <body>
@@ -1084,7 +1086,6 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
       <span class="badge badge-beta" id="betaBadge" title="Beta channel — see beta_manifest.json in repo">BETA</span>
       <span class="badge">PAPER TRADING</span>
     </div>
-    <div class="header-git-meta mono" id="betaGitMeta" style="font-size:11px;color:var(--muted);margin-bottom:6px;text-align:right"></div>
     <div class="header-updated">Last updated: <span id="lastUpdated">—</span></div>
   </div>
 </header>
@@ -1406,21 +1407,13 @@ const openPositions = DATA.open_positions || [];
 const daily  = (DATA.daily || []).slice().sort((a,b) => a.date.localeCompare(b.date));
 
 (function initBetaBadge() {
-  const b = DATA.beta_identity;
-  if (!b) return;
-  const badge = document.getElementById('betaBadge');
-  const meta = document.getElementById('betaGitMeta');
-  if (badge && b.badge_label) badge.textContent = b.badge_label;
-  if (meta) {
-    const parts = [];
-    if (b.running_branch) parts.push(b.running_branch);
-    if (b.running_dirty) parts.push('dirty');
-    const recs = b.manifest_records || [];
-    if (recs.length) {
-      parts.push('manifest: ' + recs.map(function (r) { return r.git_short || '?'; }).join(' → '));
-    }
-    meta.textContent = parts.join(' · ');
+  var legacyMeta = document.getElementById('betaGitMeta');
+  if (legacyMeta) {
+    legacyMeta.textContent = '';
+    legacyMeta.remove();
   }
+  var badge = document.getElementById('betaBadge');
+  if (badge) badge.textContent = 'BETA';
 })();
 
 (function initRulesModal() {
@@ -1862,7 +1855,36 @@ function fmtPct(v) {
 
   const dc = dailySeriesForCharts();
   const lastDaily = daily.length ? daily[daily.length - 1] : (dc.length ? dc[dc.length - 1] : null);
-  const ts = lastDaily ? lastDaily.date : new Date().toISOString().slice(0,10);
+  const sessionDate = lastDaily ? lastDaily.date : new Date().toISOString().slice(0, 10);
+  const genIso = DATA.dashboard_generated_at_utc;
+  function formatEasternFromIso(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return '';
+    try {
+      var f = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+        timeZoneName: 'short',
+      });
+      var parts = f.formatToParts(d);
+      function g(t) {
+        var p = parts.find(function (x) { return x.type === t; });
+        return p ? p.value : '';
+      }
+      return g('year') + '-' + g('month') + '-' + g('day') + ' ' + g('hour') + ':' + g('minute') + ':' + g('second') + ' ' + g('timeZoneName');
+    } catch (e) {
+      return '';
+    }
+  }
+  const et = formatEasternFromIso(genIso);
+  const ts = et || sessionDate;
   document.getElementById('lastUpdated').textContent = ts;
 })();
 
@@ -2665,6 +2687,8 @@ class DashboardWriter:
             "equity_modeled_subtitle": _eq_sub,
             "buy_hold_overlay": buy_hold_overlay,
             "beta_identity": _beta,
+            "dashboard_generated_at_utc": datetime.datetime.now(datetime.timezone.utc)
+            .isoformat(timespec="seconds"),
         }
         data_json = json.dumps(html_payload, default=str)
         html      = _TEMPLATE.replace("__DATA_JSON__", data_json)

@@ -48,6 +48,6 @@ def test_beta_identity_payload_has_expected_keys(
 
     p = beta_identity_payload(tmp_path)
     assert p["channel"] == "beta"
-    assert p["badge_label"] == "BETA · test12"
+    assert p["badge_label"] == "BETA"
     assert p["running_git_short"] == "test12"
     assert p["manifest_records"] == []

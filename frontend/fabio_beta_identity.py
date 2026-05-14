@@ -97,14 +97,13 @@ def beta_identity_payload(base: Path | None = None) -> dict[str, Any]:
     """
     gi = get_git_identity(base)
     records = load_beta_manifest_records(base)
-    short = gi.get("git_short") or "?"
     return {
         "channel": "beta",
         "running_git_short": gi.get("git_short"),
         "running_branch": gi.get("branch"),
         "running_dirty": gi.get("dirty"),
         "running_describe": gi.get("describe"),
-        "badge_label": f"BETA · {short}",
+        "badge_label": "BETA",
         "manifest_records": records,
         "manifest_path": _MANIFEST_NAME,
         "max_manifest_slots": _MAX_MANIFEST_RECORDS,
