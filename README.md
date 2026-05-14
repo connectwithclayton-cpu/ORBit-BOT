@@ -16,6 +16,21 @@ Python backtest for a **Fabio / ORBit-style opening range breakout** strategy wi
 
 **Disclaimer:** Backtests are not predictions. Past results do not guarantee future performance. This is research tooling, not financial advice.
 
+### This folder as the Git root (not the parent `Cursor Projects` repo)
+
+If **`Fabio_bot/`** still lives inside a monorepo whose `.git` is **above** this folder, make **this directory** the repository once:
+
+1. Open **Terminal.app** (or iTerm), **not** the restricted Cursor agent shell, if `git init` errors on `.git/hooks`.
+2. From this directory run:
+
+```bash
+bash portal/tooling/init_standalone_repo.sh
+```
+
+3. Then commit the parent cleanup and push Fabio (the script prints the exact `cd` / `git commit` / `git push` lines).
+
+After that, **open only `Fabio_bot/`** in Cursor or GitHub Desktop so `.git` lives here and `git status` shows this tree.
+
 ---
 
 ## Requirements
