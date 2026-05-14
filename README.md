@@ -576,7 +576,7 @@ git remote add origin https://github.com/connectwithclayton-cpu/ORBit-BOT.git   
 git push -u origin main
 ```
 
-If you still keep a parent **monorepo** that contains `Fabio_bot/` as a subfolder, you can **extract** full history for this subtree with `git filter-repo --subdirectory-filter Fabio_bot/` on a fresh clone, then add `origin` above and push (one-time migration).
+If you still keep a parent **monorepo** that contains `Fabio_bot/` as a subfolder, you can **extract** full history for this subtree with `git filter-repo --subdirectory-filter Fabio_bot/` on a fresh clone, then add `origin` above and push (one-time migration). For the **pre-built subtree branch** from this monorepo, see [`docs/PUSH_ORBIT_BOT_MIGRATION.md`](docs/PUSH_ORBIT_BOT_MIGRATION.md).
 
 ## Repo hygiene
 
