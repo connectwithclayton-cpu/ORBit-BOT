@@ -499,19 +499,26 @@ Stop bot process manually (use only when scheduler/controls are insufficient):
 pkill -f orb_bot_fabio.py
 ```
 
-Push dashboard to GitHub Pages (optional publish path):
+Push dashboard to **GitHub Pages** for this repo (ORBit-BOT) so you can text a short link:
+
+- **Short link:** [https://connectwithclayton-cpu.github.io/ORBit-BOT/](https://connectwithclayton-cpu.github.io/ORBit-BOT/) — root `index.html` redirects to the live dashboard.
+- **Direct:** [https://connectwithclayton-cpu.github.io/ORBit-BOT/frontend/live_dashboard.html](https://connectwithclayton-cpu.github.io/ORBit-BOT/frontend/live_dashboard.html)
+
+After regenerating `frontend/live_dashboard.html`, run:
 
 ```bash
 bash portal/push_dashboard.sh
 ```
 
+That commits and pushes dashboard updates to **`origin/main`** (same clone). To publish to a **different** clone instead, set `REPO_DIR` (and optionally `LIVE_REL`) — e.g. legacy flat repo `export REPO_DIR=~/Documents/TRADING/orb-live-dashboard` and `export LIVE_REL=fabio_live_dashboard.html`.
+
 ### Shared `live_dashboard.html` (collaborators)
 
-The file **`frontend/live_dashboard.html`** is tracked in Git as a **static snapshot**: all chart/table data is **inlined** in the HTML, so someone who clones the repo can open it directly in a browser (double‑click the file, **File → Open**, or `open frontend/live_dashboard.html` on macOS) with no server and no `trade_data.json` required for viewing.
+The file **`frontend/live_dashboard.html`** is tracked in Git as a **static snapshot**: chart/table data is **inlined** in the HTML, so someone can open it in a browser with no server and no `trade_data.json` required for viewing.
 
-To **refresh** the snapshot after trading or reconcile, regenerate the dashboard (live bot, `reconcile_moomoo_to_sheets.py`, or any path that invokes `DashboardWriter`), then **commit** the updated `frontend/live_dashboard.html` when you want collaborators to see the new view. **`portal/push_dashboard.sh`** defaults to copying this same file into your `orb-live-dashboard` repo for GitHub Pages.
+To **refresh** the snapshot after trading or reconcile, regenerate the dashboard (live bot, `reconcile_moomoo_to_sheets.py`, or any path that invokes `DashboardWriter`), then run **`bash portal/push_dashboard.sh`** (or commit the updated `frontend/live_dashboard.html` yourself).
 
-**Privacy:** The HTML embeds trade and P&amp;L detail. For a **public** repository, only commit snapshots you are willing to expose; use a private repo or a redacted export if needed.
+**Privacy:** The HTML embeds trade and P&amp;L detail. For a **public** GitHub repo + Pages, only push snapshots you are willing to expose; use a private repo or a redacted export if needed.
 
 ### Incident triage quick paths
 
