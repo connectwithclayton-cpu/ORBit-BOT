@@ -53,7 +53,10 @@ unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
 
 git -C "$FABIO_ROOT" remote add monorepo "$MONO_ROOT"
 git -C "$FABIO_ROOT" fetch monorepo orbit-bot-export-main
-git -C "$FABIO_ROOT" checkout -B main FETCH_HEAD
+# Working copy already has Fabio files; Git sees them as untracked in this new repo.
+# checkout -B would refuse to overwrite them; reset --hard matches tree + index to FETCH_HEAD.
+git -C "$FABIO_ROOT" reset --hard FETCH_HEAD
+git -C "$FABIO_ROOT" branch -M main 2>/dev/null || true
 git -C "$FABIO_ROOT" remote remove monorepo
 git -C "$FABIO_ROOT" config core.hooksPath /dev/null
 
