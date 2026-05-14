@@ -2,11 +2,13 @@
 
 [![Release channel — BETA](https://img.shields.io/badge/release-BETA-FFD740?logo=git&logoColor=black)](portal/beta_manifest.json)
 
-**ORBit (public):** [GitHub repository](https://github.com/connectwithclayton-cpu/ORBit) · **Live site (GitHub Pages):** [connectwithclayton-cpu.github.io/ORBit](https://connectwithclayton-cpu.github.io/ORBit/) — that repo’s **root is this `Fabio_bot/` tree only** (not the parent Cursor Projects monorepo). Publish with `git archive HEAD:Fabio_bot | tar -x -C ~/Documents/ORBit` from the monorepo, then commit and `git push origin main` from `~/Documents/ORBit`; never copy the raw working tree without excludes.
+**Canonical GitHub (Fabio / ORBit bot):** [ORBit-BOT](https://github.com/connectwithclayton-cpu/ORBit-BOT) — treat this tree as the **repo root** there. Day-to-day: commit here and `git push origin main` so collaborators always see what you are working on.
+
+**ORBit + Pages (optional mirror):** [ORBit](https://github.com/connectwithclayton-cpu/ORBit) · [GitHub Pages](https://connectwithclayton-cpu.github.io/ORBit/) — same codebase layout when synced; update separately if you still maintain that export.
 
 Python backtest for a **Fabio / ORBit-style opening range breakout** strategy with **0DTE-style options simulation** (Black–Scholes, fixed DTE, slippage, commissions). This tree also contains related **live** helpers under `backend/` (entry `backend/orb_bot_fabio.py`), dashboard/Sheets under `frontend/`, and operators/publish tooling under `portal/`. The main research entry point is `backend/backtest/Fabio_orb_backtest.py`.
 
-**Layout:** `backend/` (live bot, reconcile, `moomoo_eod_failsafe.py`, `requirements*.txt`, `pytest.ini`, **`backtest/`** for research engine + CLI runners), `frontend/` (dashboard HTML/JSON, `sheets_logger.py`, `debug_board_writer.py`, `fabio_beta_identity.py`, `manual_position_omissions.py`), `portal/` (schedulers, `push_dashboard.sh`, `beta_manifest.json`, `docs/`, `portal/.env.example`, `portal/tooling/` for pre-commit + detect-secrets baseline). From `Fabio_bot/` run Python with `PYTHONPATH=backend:frontend` (set automatically in CI and in `backend/pytest.ini` for tests).
+**Layout:** `backend/` (live bot, reconcile, `moomoo_eod_failsafe.py`, `requirements*.txt`, `pytest.ini`, **`backtest/`** for research engine + CLI runners), `frontend/` (dashboard HTML/JSON, `sheets_logger.py`, `debug_board_writer.py`, `fabio_beta_identity.py`, `manual_position_omissions.py`), `portal/` (schedulers, `push_dashboard.sh`, `beta_manifest.json`, `docs/`, `portal/.env.example`, `portal/tooling/` for pre-commit + detect-secrets baseline), `docs/` ([`GOOGLE_SETUP.md`](docs/GOOGLE_SETUP.md), [`docs/architecture/`](docs/architecture/README.md)), `scripts/` (e.g. [`summarize_failsafe_jsonl.sh`](scripts/summarize_failsafe_jsonl.sh)), [`Fabio History/`](Fabio%20History/README.md) (archival / reference policy). From this directory run Python with `PYTHONPATH=backend:frontend` (set automatically in CI and in `backend/pytest.ini` for tests).
 
 **Root files outside those folders:** `README.md` (this file), machine-local **`.env`** (gitignored), **`.gitignore`**, and **`.github/`** (CI workflows — GitHub requires this path at the repo root).
 
@@ -55,6 +57,8 @@ pip install -r backend/requirements-moomoo.txt
 python3 backend/moomoo_eod_failsafe.py --dry-run
 python3 backend/moomoo_eod_failsafe.py --dry-run --require-after-et
 ```
+
+<a id="exit-codes-moomoo_eod_failsafepy"></a>
 
 **Exit codes (`backend/moomoo_eod_failsafe.py`):**
 
@@ -560,6 +564,20 @@ pre-commit run -c portal/tooling/pre-commit-config.yaml --all-files
 
 Use at your own risk. Verify all rules and parameters against your own trading plan before relying on any automation.
 
+## Push to GitHub (ORBit-BOT)
+
+When this directory is the **root** of [ORBit-BOT](https://github.com/connectwithclayton-cpu/ORBit-BOT), collaborators see updates as soon as you push:
+
+```bash
+git status
+git add -A
+git commit -m "Describe your change"
+git remote add origin https://github.com/connectwithclayton-cpu/ORBit-BOT.git   # once, if missing
+git push -u origin main
+```
+
+If you still keep a parent **monorepo** that contains `Fabio_bot/` as a subfolder, you can **extract** full history for this subtree with `git filter-repo --subdirectory-filter Fabio_bot/` on a fresh clone, then add `origin` above and push (one-time migration).
+
 ## Repo hygiene
 
 - Use `.gitignore` to exclude secrets and generated outputs (`.env`, credentials JSON, logs, generated CSV/PNG).
@@ -577,7 +595,7 @@ Use at your own risk. Verify all rules and parameters against your own trading p
 - Runtime telemetry retention:
   - `bot_health_snapshots.jsonl` is local-only and auto-pruned to recent history by the bot.
   - Keep logs/artifacts local and rotate/delete older operational files on a schedule.
-- If you need Google Sheets setup docs, check `../orb_bot/GOOGLE_SETUP.md` from this folder path.
+- Google Sheets service account setup: [`docs/GOOGLE_SETUP.md`](docs/GOOGLE_SETUP.md).
 - Dependency files (under `backend/`):
   - `backend/requirements.txt` (core runtime, pinned)
   - `backend/requirements.lock` (full `pip freeze` after core install — optional stricter reproducibility)

@@ -1,0 +1,16 @@
+---
+description: Hard prohibition — never exercise options contracts; close or roll positions only.
+alwaysApply: true
+---
+
+# No contract exercise
+
+This is a **non-negotiable** constraint for anything you design, code, document, or advise in this workspace.
+
+- **Do not** exercise listed options (or any derivative contracts) as a strategy, exit, or risk-management path.
+- **Do not** suggest automation, broker settings, or workflows that rely on exercise or assignment as an intended outcome.
+- **Do not** add features, configs, or copy that treat exercise as a normal or fallback behavior.
+
+**Allowed:** Open and close positions in the market (buy to close / sell to close), roll to new strikes/expirations, or let positions expire **worthless** when that is the natural outcome of not closing — without ever instructing or modeling an **exercise** action.
+
+If requirements are ambiguous, assume **no exercise** and state that assumption briefly when it affects the design.

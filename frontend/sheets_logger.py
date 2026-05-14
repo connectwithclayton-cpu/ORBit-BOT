@@ -10,7 +10,7 @@ Logs to 6 tabs:
   • Dashboard       — live KPI cards: win rate, proven edge, symbol/direction breakdown
 
 Setup:
-  1. Follow GOOGLE_SETUP.md to create service account credentials
+  1. Follow docs/GOOGLE_SETUP.md (repo root) to create service account credentials
   2. Add GOOGLE_SHEET_ID and GOOGLE_CREDS_PATH to your .env file
   3. Share the Google Sheet with your service account email
 """

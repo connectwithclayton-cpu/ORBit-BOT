@@ -12,7 +12,7 @@ same aggregation (aggregate_closed_positions).
 Output files (dashboard / state under ``Fabio_bot/``):
   backend/trade_data.json   ← persistent data store
   frontend/live_dashboard.html  ← local HTML beside repo layout
-  ~/Documents/TRADING/fabio_live_dashboard.html  ← easy-access copy (optional)
+  frontend/fabio_live_dashboard.html  ← same build, stable filename for publish scripts
 """
 
 import json
@@ -28,7 +28,7 @@ from manual_position_omissions import is_omitted_dashboard_close_trade
 _FABIO_ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE   = str(_FABIO_ROOT / "backend" / "trade_data.json")
 DASH_LOCAL  = str(_FABIO_ROOT / "frontend" / "live_dashboard.html")
-DASH_MAIN   = os.path.expanduser("~/Documents/TRADING/fabio_live_dashboard.html")
+DASH_MAIN   = str(_FABIO_ROOT / "frontend" / "fabio_live_dashboard.html")
 
 # OS option symbol token after market prefix (e.g. SPY + expiry + C/P + strike).
 _OPTION_CODE_CORE_RE = re.compile(r"([A-Z]+)\d{6}([CP])\d+")
@@ -2677,4 +2677,4 @@ class DashboardWriter:
             except Exception as e:
                 print(f"[Dashboard] Write failed ({path}): {e}")
 
-        print(f"[Dashboard] ✅ Dashboard written → {DASH_MAIN}")
+        print(f"[Dashboard] ✅ Dashboard written → {DASH_LOCAL} | {DASH_MAIN}")
