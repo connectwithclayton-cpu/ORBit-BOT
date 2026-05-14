@@ -25,16 +25,16 @@ if [[ ! -d "$MONO_ROOT/.git" ]]; then
   exit 1
 fi
 
-# Remove broken partial .git (e.g. failed init left an empty hooks dir)
-if [[ -d "$FABIO_ROOT/.git" ]] && [[ ! -f "$FABIO_ROOT/.git/HEAD" ]]; then
-  echo "==> Removing incomplete Fabio_bot/.git"
-  rm -rf "$FABIO_ROOT/.git"
-fi
-
-if [[ -f "$FABIO_ROOT/.git/HEAD" ]]; then
-  echo "Fabio_bot already looks like a Git repo (.git/HEAD exists)." >&2
-  echo "To re-run from scratch: rm -rf \"$FABIO_ROOT/.git\"" >&2
-  exit 1
+# Remove broken or empty .git (failed init, or init with no commits yet)
+if [[ -d "$FABIO_ROOT/.git" ]]; then
+  if [[ ! -f "$FABIO_ROOT/.git/HEAD" ]] || ! git -C "$FABIO_ROOT" rev-parse HEAD >/dev/null 2>&1; then
+    echo "==> Removing incomplete or empty Fabio_bot/.git"
+    rm -rf "$FABIO_ROOT/.git"
+  else
+    echo "Fabio_bot already has a real commit on HEAD — not overwriting." >&2
+    echo "To re-run from scratch: rm -rf \"$FABIO_ROOT/.git\"" >&2
+    exit 1
+  fi
 fi
 
 echo "==> Refresh subtree branch in monorepo (orbit-bot-export-main)"
@@ -43,15 +43,17 @@ git -C "$MONO_ROOT" branch -D orbit-bot-export-main 2>/dev/null || true
 git -C "$MONO_ROOT" subtree split --prefix=Fabio_bot -b orbit-bot-export-main
 
 echo "==> git init in Fabio_bot (hooksPath=/dev/null avoids sample hooks in some setups)"
+# Do not use 'init -b main' here: fetching into refs/heads/main while that branch is
+# checked out makes Git refuse the fetch ("refusing to fetch into branch ... checked out").
 export GIT_CONFIG_COUNT=1
 export GIT_CONFIG_KEY_0=core.hooksPath
 export GIT_CONFIG_VALUE_0=/dev/null
-git -C "$FABIO_ROOT" init -b main
+git -C "$FABIO_ROOT" init
 unset GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
 
 git -C "$FABIO_ROOT" remote add monorepo "$MONO_ROOT"
-git -C "$FABIO_ROOT" fetch monorepo orbit-bot-export-main:main
-git -C "$FABIO_ROOT" checkout -f main
+git -C "$FABIO_ROOT" fetch monorepo orbit-bot-export-main
+git -C "$FABIO_ROOT" checkout -B main FETCH_HEAD
 git -C "$FABIO_ROOT" remote remove monorepo
 git -C "$FABIO_ROOT" config core.hooksPath /dev/null
 
