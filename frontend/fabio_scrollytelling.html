@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101010">
+<title>ORBit Bot - Scroll Story</title>
+<style>
+:root {
+  --bg: #101010;
+  --panel: #181818;
+  --panel-2: #202020;
+  --ink: #eeeeee;
+  --muted: #9a9a9a;
+  --border: #303030;
+  --green: #00d77a;
+  --red: #ff5b5b;
+  --blue: #55c8ff;
+  --yellow: #ffd45c;
+  --violet: #b58cff;
+  --grid: rgba(255,255,255,0.09);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+a { color: inherit; }
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px max(22px, env(safe-area-inset-left)) 12px max(22px, env(safe-area-inset-right));
+  background: rgba(16,16,16,0.92);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+.brand { font-weight: 760; letter-spacing: 0; }
+.topbar .spacer { flex: 1; }
+.nav-link {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  text-decoration: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+.progress {
+  width: min(220px, 24vw);
+  height: 6px;
+  background: #262626;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--blue), var(--green), var(--yellow));
+}
+.hero {
+  min-height: 92dvh;
+  display: grid;
+  align-content: end;
+  padding: 8vh max(24px, env(safe-area-inset-left)) 9vh max(24px, env(safe-area-inset-right));
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(16,16,16,0.20), var(--bg) 82%),
+    repeating-linear-gradient(90deg, rgba(85,200,255,0.10) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 64px),
+    radial-gradient(circle at 72% 18%, rgba(0,215,122,0.18), transparent 30%),
+    #111;
+}
+.hero-inner { max-width: 1120px; }
+.eyebrow {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 740;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+h1 {
+  max-width: 940px;
+  margin: 12px 0 16px;
+  font-size: clamp(42px, 8vw, 92px);
+  line-height: 0.94;
+  letter-spacing: 0;
+}
+.hero-copy {
+  max-width: 760px;
+  color: #d6d6d6;
+  font-size: clamp(17px, 2.2vw, 23px);
+  line-height: 1.35;
+}
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  gap: 10px;
+  max-width: 920px;
+  margin-top: 32px;
+}
+.stat {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.stat strong {
+  display: block;
+  font-size: clamp(24px, 3.2vw, 36px);
+}
+.stat span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.story {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.9fr) minmax(540px, 1.3fr);
+  gap: 42px;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 8vh max(24px, env(safe-area-inset-left)) 10vh max(24px, env(safe-area-inset-right));
+}
+.steps { padding-bottom: 28vh; }
+.step {
+  min-height: 82dvh;
+  display: flex;
+  align-items: center;
+  opacity: 0.42;
+  transition: opacity 180ms ease;
+}
+.step.active { opacity: 1; }
+.step-panel {
+  width: 100%;
+  border-left: 3px solid var(--border);
+  padding: 18px 0 18px 20px;
+}
+.step.active .step-panel { border-color: var(--blue); }
+.step-kicker {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.step h2 {
+  margin: 8px 0 12px;
+  font-size: clamp(25px, 3vw, 40px);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+.step p {
+  color: #d3d3d3;
+  font-size: 16px;
+  line-height: 1.55;
+  margin: 0 0 14px;
+}
+.step ul {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.step li {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+.visual-wrap {
+  position: sticky;
+  top: 72px;
+  height: calc(100dvh - 92px);
+  min-height: 560px;
+  display: grid;
+  align-items: center;
+}
+.visual {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #191919, #131313);
+  overflow: hidden;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.24);
+}
+.visual-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.visual-title { font-weight: 740; }
+.visual-note {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+.stage {
+  position: relative;
+  min-height: 520px;
+  padding: 18px;
+}
+svg { display: block; width: 100%; height: auto; }
+.axis, .tick-label, .chart-label {
+  fill: var(--muted);
+  font-size: 11px;
+}
+.grid { stroke: var(--grid); stroke-width: 1; }
+.line { fill: none; stroke: var(--blue); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.area { fill: rgba(85,200,255,0.10); }
+.marker { transition: opacity 180ms ease, transform 220ms ease; }
+.bar { transition: opacity 180ms ease, y 220ms ease, height 220ms ease; }
+.hidden-state { opacity: 0.18; }
+.focus-state { opacity: 1; }
+.callout {
+  position: absolute;
+  max-width: 270px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(16,16,16,0.88);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.28);
+}
+.callout strong { display: block; font-size: 14px; }
+.callout span {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.callout[data-callout="equity"] { top: 28px; right: 28px; }
+.callout[data-callout="reason"] { left: 28px; bottom: 34px; }
+.scene-chips {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--muted);
+  font-size: 11px;
+  background: rgba(255,255,255,0.03);
+}
+.chip.active { color: var(--ink); border-color: rgba(85,200,255,0.6); background: rgba(85,200,255,0.12); }
+.matrix {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 7px;
+  margin-top: 18px;
+}
+.cell {
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.2;
+  background: rgba(255,255,255,0.03);
+}
+.cell.trade { color: var(--ink); border-color: rgba(0,215,122,0.35); background: rgba(0,215,122,0.08); }
+.cell.block { color: #ffd7d7; border-color: rgba(255,91,91,0.32); background: rgba(255,91,91,0.08); }
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 22px;
+}
+.node {
+  min-height: 80px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px;
+  background: rgba(255,255,255,0.04);
+}
+.node strong { display: block; font-size: 13px; }
+.node span { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.3; }
+.node.active { border-color: rgba(85,200,255,0.70); background: rgba(85,200,255,0.10); }
+.mobile-frame { display: none; }
+.acceptance {
+  border-top: 1px solid var(--border);
+  padding: 52px max(24px, env(safe-area-inset-left)) 70px max(24px, env(safe-area-inset-right));
+  color: var(--muted);
+}
+.acceptance-inner { max-width: 980px; margin: 0 auto; }
+.acceptance h2 { color: var(--ink); margin: 0 0 14px; }
+.acceptance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.acceptance-grid div {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  line-height: 1.45;
+}
+@media (max-width: 980px) {
+  .progress { display: none; }
+  .hero-stats { grid-template-columns: repeat(2, 1fr); }
+  .story {
+    display: block;
+    padding-top: 28px;
+  }
+  .visual-wrap { display: none; }
+  .steps { padding-bottom: 0; }
+  .step {
+    min-height: auto;
+    display: block;
+    opacity: 1;
+    margin-bottom: 30px;
+  }
+  .step-panel {
+    padding-left: 14px;
+  }
+  .mobile-frame {
+    display: block;
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--panel);
+  }
+  .acceptance-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .step { transition: none; }
+  .bar, .marker { transition: none; }
+}
+</style>
+</head>
+<body>
+<nav class="topbar" aria-label="Story navigation">
+  <div class="brand">ORBit Bot</div>
+  <div class="progress" aria-hidden="true"><span id="progressFill"></span></div>
+  <div class="spacer"></div>
+  <a class="nav-link" href="live_dashboard.html">Dashboard</a>
+</nav>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Scroll-driven operating picture</div>
+    <h1>Fabio turns an opening range into a controlled options workflow.</h1>
+    <p class="hero-copy">
+      This story walks through the June 5 dashboard snapshot: how the bot moves from regime filters,
+      to entries, to circuit discipline, to end-of-day flattening. Scrolling changes the evidence, not
+      the browser's native behavior.
+    </p>
+    <div class="hero-stats" aria-label="Dashboard snapshot summary">
+      <div class="stat"><strong id="statSessions">24</strong><span>sessions in snapshot</span></div>
+      <div class="stat"><strong id="statTrades">47</strong><span>closed positions</span></div>
+      <div class="stat"><strong id="statNet">$25,095</strong><span>net P&amp;L from closed sessions</span></div>
+      <div class="stat"><strong id="statBlocks">9</strong><span>documented no-trade sessions</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="story">
+  <section class="steps" aria-label="Narrative steps">
+    <article class="step active" data-scene="overview">
+      <div class="step-panel">
+        <div class="step-kicker">Scene 1 / System contract</div>
+        <h2>Every session starts with a gate, not a trade.</h2>
+        <p>Fabio watches SPY, QQQ, and NVDA, but the first decision is whether the market context is eligible. The visual starts with the full session ledger and highlights trade days versus blocked days.</p>
+        <ul>
+          <li>Visual layer: daily P&amp;L bars, cumulative equity, and no-trade reason cells.</li>
+          <li>Static fallback: full month ledger with trade and block days visible.</li>
+        </ul>
+        <div class="mobile-frame" data-mobile-frame="overview"></div>
+      </div>
+    </article>
+
+    <article class="step" data-scene="range">
+      <div class="step-panel">
+        <div class="step-kicker">Scene 2 / Opening range</div>
+        <h2>The opening range compresses the morning into one decision band.</h2>
+        <p>Current research and live logic define the opening range from 09:30 to 09:44 ET on 5-minute bars. Breakouts still need trend and regime agreement before risk is committed.</p>
+        <ul>
+          <li>Visual change: timeline narrows to the first 15 minutes, then marks the confirmation window.</li>
+          <li>Why scroll helps: the reader sees the gate sequence in operational order.</li>
+        </ul>
+        <div class="mobile-frame" data-mobile-frame="range"></div>
+      </div>
+    </article>
+
+    <article class="step" data-scene="acceleration">
+      <div class="step-panel">
+        <div class="step-kicker">Scene 3 / Early acceleration</div>
+        <h2>May 5-8 created the first equity step-up.</h2>
+        <p>The first winning cluster carried the dashboard out of its opening loss. The equity line moves from negative territory into a sustained positive run over four sessions.</p>
+        <ul>
+          <li>Evidence: +$2,407, +$2,781, +$2,332, and +$2,185 in consecutive sessions.</li>
+          <li>Static fallback: highlighted bars and cumulative line at May 8.</li>
+        </ul>
+        <div class="mobile-frame" data-mobile-frame="acceleration"></div>
+      </div>
+    </article>
+
+    <article class="step" data-scene="drawdown">
+      <div class="step-panel">
+        <div class="step-kicker">Scene 4 / Drawdown control</div>
+        <h2>The mid-May drawdown is visible, but it is bounded.</h2>
+        <p>May 11-18 produced a losing stretch. The visual dims wins and focuses on the loss cluster so it is clear where performance was paid back.</p>
+        <ul>
+          <li>Evidence: five negative trading sessions in the cluster, bottoming at May 18.</li>
+          <li>Risk note: this is paper trading research, not a forecast.</li>
+        </ul>
+        <div class="mobile-frame" data-mobile-frame="drawdown"></div>
+      </div>
+    </article>
+
+    <article class="step" data-scene="filters">
+      <div class="step-panel">
+        <div class="step-kicker">Scene 5 / No-trade discipline</div>
+        <h2>No trade is an explicit outcome.</h2>
+        <p>Several days show no closed positions because the bot was off, late, below the VIX floor, blocked by red-day filters, or rejected counter-trend signals. The reason matrix moves from P&amp;L to control state.</p>
+        <ul>
+          <li>Evidence: May 19, May 26-29, June 1, June 3, and June 5 record no-trade reasons.</li>
+          <li>Browser behavior: native scroll, no wheel interception, keyboard scroll remains standard.</li>
+        </ul>
+        <div class="mobile-frame" data-mobile-frame="filters"></div>
+      </div>
+    </article>
+
+    <article class="step" data-scene="recovery">
+      <div class="step-panel">
+        <div class="step-kicker">Scene 6 / June reset</div>
+        <h2>June 4 shows the cleanest recent closed session.</h2>
+        <p>After multiple block days, June 4 closed two winning positions for +$5,118. The story shifts from filter state back to trade outcome and end-of-day completion.</p>
+        <ul>
+          <li>Evidence: two winners, zero losers, and the largest single-day net P&amp;L in the snapshot.</li>
+          <li>Static fallback: final equity line and the June 4 bar are both labeled.</li>
+        </ul>
+        <div class="mobile-frame" data-mobile-frame="recovery"></div>
+      </div>
+    </article>
+
+    <article class="step" data-scene="ops">
+      <div class="step-panel">
+        <div class="step-kicker">Scene 7 / Live operations</div>
+        <h2>The repo supports a narrow live pipeline.</h2>
+        <p>The operational path is deliberately simple: data and regime checks feed the strategy loop, orders route through OpenD, the dashboard records session state, and the fail-safe can flatten leftovers after the primary close.</p>
+        <ul>
+          <li>Implementation stack: static HTML, SVG, IntersectionObserver, and native sticky layout.</li>
+          <li>Reduced motion: all scene frames remain stacked with the same labels and data claims.</li>
+        </ul>
+        <div class="mobile-frame" data-mobile-frame="ops"></div>
+      </div>
+    </article>
+  </section>
+
+  <aside class="visual-wrap" aria-label="Sticky visualization">
+    <section class="visual">
+      <div class="visual-head">
+        <div class="visual-title" id="sceneTitle">Session ledger</div>
+        <div class="visual-note" id="sceneNote">Dashboard snapshot generated 2026-06-05</div>
+      </div>
+      <div class="stage" id="stage">
+        <svg id="chart" viewBox="0 0 760 430" role="img" aria-labelledby="chartTitle chartDesc">
+          <title id="chartTitle">Fabio daily P&amp;L and cumulative equity by session</title>
+          <desc id="chartDesc">Bars show daily net P&amp;L and a line shows cumulative closed-session P&amp;L from May 4 to June 5, 2026.</desc>
+          <g id="grid"></g>
+          <g id="bars"></g>
+          <path id="equityArea" class="area"></path>
+          <path id="equityLine" class="line"></path>
+          <g id="markers"></g>
+          <g id="rangeGuide"></g>
+          <g id="axisLabels"></g>
+        </svg>
+        <div class="matrix" id="reasonMatrix" aria-label="No-trade reason matrix"></div>
+        <div class="pipeline" id="pipeline" aria-label="Live operating pipeline"></div>
+        <div class="callout" data-callout="equity" id="primaryCallout"><strong>Full month view</strong><span>Trade days and blocked days are shown together so the story includes restraint.</span></div>
+        <div class="callout" data-callout="reason" id="secondaryCallout"><strong>Reason ledger</strong><span>No-trade days are annotated from the dashboard reason fields.</span></div>
+        <div class="scene-chips" id="sceneChips" aria-hidden="true"></div>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<section class="acceptance">
+  <div class="acceptance-inner">
+    <h2>Scene Contract</h2>
+    <div class="acceptance-grid">
+      <div><strong>First frame:</strong> full Fabio bot month snapshot with sessions, P&amp;L, and no-trade outcomes visible.</div>
+      <div><strong>Key frames:</strong> opening-range gate, May acceleration, mid-May drawdown, no-trade filter matrix, and June 4 recovery.</div>
+      <div><strong>Final frame:</strong> operational pipeline connecting regime, orders, dashboard, and EOD fail-safe without custom scroll ownership.</div>
+    </div>
+  </div>
+</section>
+
+<script>
+const daily = [
+  {date:"2026-05-04",trades:4,net:-97,reasons:[]},
+  {date:"2026-05-05",trades:6,net:2407,reasons:[]},
+  {date:"2026-05-06",trades:3,net:2781,reasons:[]},
+  {date:"2026-05-07",trades:3,net:2332,reasons:[]},
+  {date:"2026-05-08",trades:5,net:2185,reasons:[]},
+  {date:"2026-05-11",trades:5,net:-1472,reasons:[]},
+  {date:"2026-05-12",trades:2,net:-1728,reasons:[]},
+  {date:"2026-05-13",trades:3,net:4892,reasons:[]},
+  {date:"2026-05-14",trades:3,net:-2033,reasons:[]},
+  {date:"2026-05-15",trades:2,net:-1544,reasons:[]},
+  {date:"2026-05-18",trades:1,net:-806,reasons:[]},
+  {date:"2026-05-19",trades:0,net:0,reasons:["bot_off"]},
+  {date:"2026-05-20",trades:3,net:3249,reasons:[]},
+  {date:"2026-05-21",trades:7,net:-2021,reasons:[]},
+  {date:"2026-05-22",trades:1,net:-828,reasons:[]},
+  {date:"2026-05-26",trades:0,net:0,reasons:["bot_off"]},
+  {date:"2026-05-27",trades:0,net:0,reasons:["bot_off"]},
+  {date:"2026-05-28",trades:0,net:0,reasons:["bot_off"]},
+  {date:"2026-05-29",trades:0,net:0,reasons:["late_start","vix_below_16_1","no_or_breakout","counter_trend"]},
+  {date:"2026-06-01",trades:0,net:0,reasons:["late_start","vix_below_16_1","red_day","no_or_breakout","counter_trend"]},
+  {date:"2026-06-02",trades:2,net:1048,reasons:[]},
+  {date:"2026-06-03",trades:0,net:0,reasons:["no_or_breakout","counter_trend"]},
+  {date:"2026-06-04",trades:2,net:5118,reasons:[]},
+  {date:"2026-06-05",trades:0,net:0,reasons:["counter_trend"]}
+];
+
+const reasonLabels = {
+  bot_off: "bot off",
+  late_start: "late",
+  vix_below_16_1: "VIX < 16.1",
+  no_or_breakout: "no OR",
+  counter_trend: "counter",
+  red_day: "red"
+};
+
+const scenes = {
+  overview: {
+    title: "Session ledger",
+    note: "Full dashboard snapshot",
+    focus: daily.map((_, i) => i),
+    chips: ["24 sessions", "47 closed positions", "9 no-trade sessions"],
+    callout: ["Full month view", "Trade days and blocked days are shown together so the story includes restraint."],
+    secondary: ["Reason ledger", "No-trade days are annotated from the dashboard reason fields."]
+  },
+  range: {
+    title: "Opening-range gate",
+    note: "09:30-09:44 ET, 5-minute bars",
+    focus: [],
+    chips: ["09:30", "09:44", "confirmation", "trend check"],
+    callout: ["First 15 minutes", "The range is measured before entries are eligible, then confirmed against trend and regime state."],
+    secondary: ["Lightweight technique", "Native sticky layout plus SVG states avoids a heavy animation library."]
+  },
+  acceleration: {
+    title: "Early winning cluster",
+    note: "May 5-8, 2026",
+    focus: [1,2,3,4],
+    chips: ["+$2,407", "+$2,781", "+$2,332", "+$2,185"],
+    callout: ["First equity step-up", "Four consecutive positive sessions moved cumulative P&L from -$97 to +$9,608."],
+    secondary: ["Evidence-bearing transition", "Bars and cumulative line focus on the same sessions named in the text."]
+  },
+  drawdown: {
+    title: "Mid-May drawdown",
+    note: "May 11-18, 2026",
+    focus: [5,6,8,9,10],
+    chips: ["-$1,472", "-$1,728", "-$2,033", "-$1,544", "-$806"],
+    callout: ["Bounded loss cluster", "The losing stretch is isolated so it can be compared against the prior run-up and later recovery."],
+    secondary: ["Interpretation guard", "The chart uses closed-session P&L from paper trading and does not imply future results."]
+  },
+  filters: {
+    title: "No-trade discipline",
+    note: "Reason matrix",
+    focus: [11,15,16,17,18,19,21,23],
+    chips: ["bot off", "late start", "VIX floor", "counter-trend", "no OR breakout"],
+    callout: ["Flat can be correct", "No-trade sessions carry explicit reasons instead of disappearing from the story."],
+    secondary: ["Control state", "The matrix emphasizes decisions that prevented entries, not only days with P&L."]
+  },
+  recovery: {
+    title: "June 4 recovery",
+    note: "Two closed winners",
+    focus: [20,22],
+    chips: ["June 2 +$1,048", "June 4 +$5,118", "2 winners", "0 losers"],
+    callout: ["Largest closed day", "June 4 closed two winning positions and became the largest daily P&L in the snapshot."],
+    secondary: ["End state", "The final equity line retains the month context while the June 4 bar is emphasized."]
+  },
+  ops: {
+    title: "Narrow live pipeline",
+    note: "Repo-supported operations",
+    focus: [],
+    chips: ["market data", "regime", "orders", "dashboard", "EOD fail-safe"],
+    callout: ["Operational contract", "Regime and strategy state feed orders, dashboard evidence, and post-close flattening."],
+    secondary: ["Browser contract", "Scroll remains native. IntersectionObserver only changes visual state and progress."]
+  }
+};
+
+let activeScene = "overview";
+const cumulative = daily.reduce((acc, d, i) => {
+  acc.push((i ? acc[i - 1] : 0) + d.net);
+  return acc;
+}, []);
+
+const chart = {
+  w: 760,
+  h: 430,
+  left: 48,
+  right: 24,
+  top: 26,
+  bottom: 64,
+  maxNet: Math.max(...daily.map(d => Math.abs(d.net)), 5200),
+  minCum: Math.min(...cumulative, 0),
+  maxCum: Math.max(...cumulative, 1)
+};
+
+function money(n) {
+  const sign = n < 0 ? "-$" : "$";
+  return sign + Math.abs(Math.round(n)).toLocaleString();
+}
+
+function xFor(i) {
+  const span = chart.w - chart.left - chart.right;
+  return chart.left + (span * i / (daily.length - 1));
+}
+
+function yBar(v) {
+  const mid = 230;
+  const scale = 148 / chart.maxNet;
+  return v >= 0 ? mid - v * scale : mid;
+}
+
+function hBar(v) {
+  return Math.max(2, Math.abs(v) * (148 / chart.maxNet));
+}
+
+function yCum(v) {
+  const top = 54;
+  const bottom = 358;
+  const t = (v - chart.minCum) / (chart.maxCum - chart.minCum);
+  return bottom - t * (bottom - top);
+}
+
+function linePath(values) {
+  return values.map((v, i) => (i ? "L" : "M") + xFor(i).toFixed(1) + "," + yCum(v).toFixed(1)).join(" ");
+}
+
+function areaPath(values) {
+  const baseline = yCum(0);
+  return "M" + xFor(0) + "," + baseline + " " + linePath(values) + " L" + xFor(values.length - 1) + "," + baseline + " Z";
+}
+
+function renderBase() {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = [0, 1, 2, 3, 4].map(i => {
+    const y = 60 + i * 74;
+    return '<line class="grid" x1="42" x2="736" y1="' + y + '" y2="' + y + '"></line>';
+  }).join("") + '<line class="grid" x1="42" x2="736" y1="230" y2="230"></line>';
+
+  document.getElementById("axisLabels").innerHTML =
+    '<text class="axis" x="48" y="26">closed-session P&amp;L bars + cumulative line</text>' +
+    '<text class="axis" x="48" y="404">May 4</text>' +
+    '<text class="axis" x="676" y="404">June 5</text>' +
+    '<text class="axis" x="48" y="223">0</text>';
+
+  document.getElementById("bars").innerHTML = daily.map((d, i) => {
+    const x = xFor(i) - 8;
+    const y = yBar(d.net);
+    const color = d.net > 0 ? "var(--green)" : (d.net < 0 ? "var(--red)" : "var(--yellow)");
+    return '<rect class="bar" data-index="' + i + '" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) +
+      '" width="16" height="' + hBar(d.net).toFixed(1) + '" rx="3" fill="' + color + '"></rect>';
+  }).join("");
+
+  document.getElementById("equityLine").setAttribute("d", linePath(cumulative));
+  document.getElementById("equityArea").setAttribute("d", areaPath(cumulative));
+
+  document.getElementById("markers").innerHTML = daily.map((d, i) => {
+    const hasReason = d.reasons.length > 0;
+    const fill = hasReason ? "var(--yellow)" : "var(--blue)";
+    return '<circle class="marker" data-index="' + i + '" cx="' + xFor(i).toFixed(1) +
+      '" cy="' + yCum(cumulative[i]).toFixed(1) + '" r="' + (hasReason ? 4.8 : 3.5) +
+      '" fill="' + fill + '"><title>' + d.date + " " + money(d.net) + '</title></circle>';
+  }).join("");
+
+  renderMatrix();
+  renderPipeline();
+  renderMobileFrames();
+}
+
+function renderMatrix() {
+  const matrix = document.getElementById("reasonMatrix");
+  matrix.innerHTML = daily.map((d) => {
+    const cls = d.trades > 0 ? "trade" : (d.reasons.length ? "block" : "");
+    const label = d.reasons.length ? d.reasons.map(r => reasonLabels[r] || r).slice(0, 2).join(", ") : (d.trades ? d.trades + " trades" : "flat");
+    return '<div class="cell ' + cls + '" data-date="' + d.date + '"><strong>' + d.date.slice(5) + '</strong><br>' + label + '</div>';
+  }).join("");
+}
+
+function renderPipeline() {
+  const nodes = [
+    ["Market data", "5-minute bars, VIX, watchlist"],
+    ["Regime gate", "trend, gap, OR width, VIX band"],
+    ["Strategy loop", "breakout, retest, circuit rules"],
+    ["Orders", "Moomoo OpenD execution path"],
+    ["Dashboard + EOD", "session ledger and fail-safe sweep"]
+  ];
+  document.getElementById("pipeline").innerHTML = nodes.map((n, i) =>
+    '<div class="node" data-node="' + i + '"><strong>' + n[0] + '</strong><span>' + n[1] + '</span></div>'
+  ).join("");
+}
+
+function renderMobileFrames() {
+  document.querySelectorAll("[data-mobile-frame]").forEach(el => {
+    const scene = el.getAttribute("data-mobile-frame");
+    const cfg = scenes[scene];
+    el.innerHTML = '<strong>' + cfg.title + '</strong><p style="color:var(--muted);line-height:1.4;margin:8px 0 0">' +
+      cfg.callout[1] + '</p><div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px">' +
+      cfg.chips.map(c => '<span class="chip active">' + c + '</span>').join("") + '</div>';
+  });
+}
+
+function updateScene(scene) {
+  activeScene = scene;
+  const cfg = scenes[scene];
+  document.getElementById("sceneTitle").textContent = cfg.title;
+  document.getElementById("sceneNote").textContent = cfg.note;
+  document.getElementById("primaryCallout").innerHTML = '<strong>' + cfg.callout[0] + '</strong><span>' + cfg.callout[1] + '</span>';
+  document.getElementById("secondaryCallout").innerHTML = '<strong>' + cfg.secondary[0] + '</strong><span>' + cfg.secondary[1] + '</span>';
+  document.getElementById("sceneChips").innerHTML = cfg.chips.map(c => '<span class="chip active">' + c + '</span>').join("");
+
+  const focused = new Set(cfg.focus);
+  const focusAll = scene === "overview";
+  document.querySelectorAll(".bar,.marker").forEach(el => {
+    const i = Number(el.getAttribute("data-index"));
+    el.classList.toggle("hidden-state", !focusAll && !focused.has(i) && scene !== "range" && scene !== "ops");
+    el.classList.toggle("focus-state", focusAll || focused.has(i));
+  });
+
+  document.querySelectorAll(".cell").forEach((el, i) => {
+    const isReason = daily[i].reasons.length > 0;
+    const showReason = scene === "filters" || scene === "overview";
+    el.style.opacity = showReason ? (isReason || scene === "overview" ? "1" : "0.24") : "0.16";
+  });
+
+  document.querySelectorAll(".node").forEach((el, i) => {
+    el.classList.toggle("active", scene === "ops" || (scene === "range" && i < 3));
+  });
+
+  const rangeGuide = document.getElementById("rangeGuide");
+  if (scene === "range") {
+    rangeGuide.innerHTML =
+      '<rect x="92" y="84" width="214" height="156" rx="8" fill="rgba(85,200,255,0.10)" stroke="rgba(85,200,255,0.70)"></rect>' +
+      '<text class="chart-label" x="106" y="112">09:30-09:44 opening range</text>' +
+      '<line x1="306" x2="474" y1="162" y2="162" stroke="var(--yellow)" stroke-width="3" stroke-dasharray="7 7"></line>' +
+      '<text class="chart-label" x="324" y="150">confirmation + filters</text>';
+  } else {
+    rangeGuide.innerHTML = "";
+  }
+}
+
+function setupObservers() {
+  const steps = Array.from(document.querySelectorAll(".step"));
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      steps.forEach(s => s.classList.remove("active"));
+      entry.target.classList.add("active");
+      updateScene(entry.target.getAttribute("data-scene"));
+    });
+  }, { threshold: 0.55 });
+  steps.forEach(step => observer.observe(step));
+
+  window.addEventListener("scroll", () => {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = max > 0 ? window.scrollY / max : 0;
+    document.getElementById("progressFill").style.width = Math.max(0, Math.min(1, pct)) * 100 + "%";
+  }, { passive: true });
+}
+
+function initStats() {
+  const sessions = daily.length;
+  const trades = daily.reduce((s, d) => s + d.trades, 0);
+  const net = daily.reduce((s, d) => s + d.net, 0);
+  const blocks = daily.filter(d => d.reasons.length).length;
+  document.getElementById("statSessions").textContent = sessions;
+  document.getElementById("statTrades").textContent = trades;
+  document.getElementById("statNet").textContent = money(net);
+  document.getElementById("statBlocks").textContent = blocks;
+}
+
+renderBase();
+initStats();
+updateScene(activeScene);
+setupObservers();
+</script>
+</body>
+</html>
