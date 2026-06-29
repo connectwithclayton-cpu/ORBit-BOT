@@ -1405,11 +1405,17 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   font-size: 11px;
   color: var(--muted);
   text-align: center;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 .pnl-calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 .pnl-cal-cell {
   min-width: 0;
@@ -1461,7 +1467,11 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   font-weight: 600;
   line-height: 1.2;
   width: 100%;
+  min-width: 0;
   text-align: center;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 .pnl-cal-cell .cal-pct-line {
   font-size: 9px;
@@ -3561,7 +3571,6 @@ function renderCalendarGates(iso) {
   let viewYear = now.getFullYear();
   let viewMonth = now.getMonth();
   let selectedDate = CAL_CTX.today_et || (daily.length ? daily[daily.length - 1].date : null);
-  const compactCellMedia = window.matchMedia ? window.matchMedia('(max-width: 600px)') : null;
 
   function monthName(y, m) {
     return new Date(y, m, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
@@ -3686,7 +3695,7 @@ function renderCalendarGates(iso) {
         if (pnl > 0) outcomeClass = 'day-outcome-pos';
         else if (pnl < 0) outcomeClass = 'day-outcome-neg';
         else outcomeClass = 'day-outcome-zero';
-        pnlText = compactCellMedia && compactCellMedia.matches ? fmtCalendarCellPnl(pnl) : fmtPnl(pnl);
+        pnlText = fmtCalendarCellPnl(pnl);
       }
       btn.classList.add(outcomeClass);
       if (iso === selectedDate) btn.classList.add('selected');
