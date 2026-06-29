@@ -1238,25 +1238,31 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     font-size: 14px;
   }
   .pnl-calendar-weekdays {
-    gap: 1px;
-    margin: 8px 0 4px;
-    font-size: 9px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin: 10px 0 6px;
+    font-size: 11px;
   }
+  .pnl-calendar-weekdays span:first-child,
+  .pnl-calendar-weekdays span:last-child { display: none; }
   .pnl-calendar-grid {
-    gap: 2px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
     width: 100%;
     max-width: 100%;
   }
+  .pnl-cal-cell.cal-weekend { display: none; }
   .pnl-cal-cell {
     min-width: 0;
-    min-height: 42px;
-    padding: 4px 1px;
-    border-radius: 5px;
-    gap: 1px;
+    min-height: 72px;
+    padding: 7px 3px;
+    border-radius: 8px;
+    gap: 4px;
     overflow: hidden;
   }
   .pnl-cal-cell .cal-pnl {
-    font-size: 9px;
+    font-size: 15px;
+    font-weight: 800;
     line-height: 1.1;
     white-space: nowrap;
     overflow: hidden;
@@ -1266,12 +1272,12 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   .pnl-cal-cell .cal-reason,
   .pnl-cal-cell .cal-pct-line { display: none; }
   .pnl-cal-cell .cal-day-num {
-    font-size: 9px;
-    text-align: center;
-    align-self: center;
-    padding-right: 0;
+    font-size: 11px;
+    text-align: right;
+    align-self: flex-end;
+    padding-right: 3px;
   }
-  .pnl-cal-cell.day-nyse-closed .cal-pnl { font-size: 9px; }
+  .pnl-cal-cell.day-nyse-closed .cal-pnl { font-size: 13px; }
   .pnl-cal-cell .cal-early-badge { display: none; }
   .calendar-gate-row {
     grid-template-columns: 1fr;
@@ -1348,12 +1354,10 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     width: 100%;
   }
   .tv-btn { flex: 1 1 calc(50% - 4px); text-align: center; }
-  .pnl-cal-cell {
-    min-height: 40px;
-    padding-left: 0;
-    padding-right: 0;
-  }
-  .pnl-cal-cell .cal-pnl { font-size: 8px; }
+  .pnl-calendar-grid,
+  .pnl-calendar-weekdays { gap: 5px; }
+  .pnl-cal-cell { min-height: 66px; }
+  .pnl-cal-cell .cal-pnl { font-size: 14px; }
 }
 /* Older cached builds may still ship #betaGitMeta; keep hidden before/without JS. */
 #betaGitMeta { display: none !important; }
@@ -3169,7 +3173,7 @@ function fmtCalendarCellPnl(v) {
   const sign = n >= 0 ? '+' : '-';
   const abs = Math.abs(n);
   if (abs === 0) return '$0';
-  if (abs >= 1000) return sign + '$' + (abs / 1000).toFixed(abs >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k';
+  if (abs >= 1000) return sign + '$' + Math.round(abs / 1000) + 'k';
   return sign + '$' + abs.toFixed(0);
 }
 function fmtPct(v) {
@@ -3668,7 +3672,7 @@ function renderCalendarGates(iso) {
 
     for (let i = 0; i < startPad; i++) {
       const empty = document.createElement('div');
-      empty.className = 'pnl-cal-cell empty-day';
+      empty.className = 'pnl-cal-cell empty-day ' + (i === 0 || i === 6 ? 'cal-weekend' : 'cal-weekday');
       empty.setAttribute('aria-hidden', 'true');
       grid.appendChild(empty);
     }
@@ -3678,9 +3682,11 @@ function renderCalendarGates(iso) {
         viewYear + '-' + String(viewMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
       const row = dailyByDate[iso];
       const nyse = NYSE_CAL[iso];
+      const weekday = new Date(viewYear, viewMonth, day).getDay();
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'pnl-cal-cell';
+      btn.classList.add(weekday === 0 || weekday === 6 ? 'cal-weekend' : 'cal-weekday');
       btn.setAttribute('role', 'gridcell');
       btn.dataset.date = iso;
 
