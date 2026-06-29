@@ -6,7 +6,28 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FABIO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-PYTHON_BIN="${PYTHON_BIN:-$(which python3)}"
+_resolve_python_bin() {
+  if [[ -n "${PYTHON_BIN:-}" && -x "${PYTHON_BIN}" ]]; then
+    echo "$PYTHON_BIN"
+    return 0
+  fi
+
+  local candidate
+  for candidate in \
+    "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3" \
+    "$(command -v python3 2>/dev/null || true)" \
+    "/usr/local/bin/python3" \
+    "/opt/homebrew/bin/python3" \
+    "/usr/bin/python3"; do
+    [[ -n "$candidate" && -x "$candidate" ]] || continue
+    if "$candidate" -c "import pandas" >/dev/null 2>&1; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+PYTHON_BIN="${PYTHON_BIN:-$(_resolve_python_bin || true)}"
 AUDIT_PY="${FABIO_ROOT}/backend/scripts/audit_moomoo_sync.py"
 LOG_JSONL="${FABIO_ROOT}/audit_sync.jsonl"
 STATE_JSON="${FABIO_ROOT}/audit_sync_state.json"
@@ -18,6 +39,17 @@ ALERT_AFTER_FAILURES="${ALERT_AFTER_FAILURES:-2}"
 JITTER_MAX_SEC="${JITTER_MAX_SEC:-8}"
 
 cd "$FABIO_ROOT"
+
+# Load the same external secrets file used by the live bot so SheetsLogger can
+# connect when launchd starts with a minimal environment.
+# shellcheck source=../../portal/fabio_env.sh
+source "${FABIO_ROOT}/portal/fabio_env.sh"
+if fabio_resolve_env_file "$FABIO_ROOT" && [[ -n "${FABIO_ENV_FILE:-}" && -f "$FABIO_ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$FABIO_ENV_FILE"
+  set +a
+fi
 
 if [[ ! -x "$PYTHON_BIN" ]]; then
   echo "python3 not executable: $PYTHON_BIN" >&2

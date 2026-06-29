@@ -9,7 +9,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 WRAP="$BOT_DIR/backend/scripts/run_moomoo_sync_audit.sh"
-OUT_LOG="$BOT_DIR/audit_sync_scheduler.log"
+# launchd redirect must be outside ~/Documents (TCC → EX_CONFIG 78 otherwise).
+BOOT_LOG_DIR="$HOME/Library/Logs/Fabio"
+mkdir -p "$BOOT_LOG_DIR"
+OUT_LOG="$BOOT_LOG_DIR/syncaudit.boot.log"
 PLIST_15="$HOME/Library/LaunchAgents/com.claytonorb.fabio.syncaudit.15m.plist"
 PLIST_EOD="$HOME/Library/LaunchAgents/com.claytonorb.fabio.syncaudit.eod.plist"
 
