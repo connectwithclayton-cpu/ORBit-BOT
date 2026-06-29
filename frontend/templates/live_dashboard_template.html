@@ -3635,6 +3635,22 @@ function renderCalendarGates(iso) {
   let viewYear = now.getFullYear();
   let viewMonth = now.getMonth();
   let selectedDate = CAL_CTX.today_et || (daily.length ? daily[daily.length - 1].date : null);
+  let calendarMobileMode = null;
+
+  function isMobileCalendar() {
+    return Math.min(window.innerWidth || 9999, document.documentElement.clientWidth || 9999) <= 768;
+  }
+
+  function syncCalendarLayoutMode(mobile) {
+    const weekdays = document.querySelector('.pnl-calendar-weekdays');
+    grid.style.gridTemplateColumns = mobile ? 'repeat(5, minmax(0, 1fr))' : '';
+    grid.classList.toggle('pnl-calendar-mobile-grid', mobile);
+    if (!weekdays) return;
+    weekdays.style.gridTemplateColumns = mobile ? 'repeat(5, minmax(0, 1fr))' : '';
+    weekdays.querySelectorAll('span').forEach(function (span, idx) {
+      span.style.display = mobile && (idx === 0 || idx === 6) ? 'none' : '';
+    });
+  }
 
   function monthName(y, m) {
     return new Date(y, m, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
@@ -3726,13 +3742,19 @@ function renderCalendarGates(iso) {
   function renderCalendar() {
     updateMonthHeader();
     grid.innerHTML = '';
+    const mobile = isMobileCalendar();
+    calendarMobileMode = mobile;
+    syncCalendarLayoutMode(mobile);
     const first = new Date(viewYear, viewMonth, 1);
-    const startPad = first.getDay();
+    const firstDow = first.getDay();
+    const startPad = mobile
+      ? (firstDow >= 1 && firstDow <= 5 ? firstDow - 1 : 0)
+      : firstDow;
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
 
     for (let i = 0; i < startPad; i++) {
       const empty = document.createElement('div');
-      empty.className = 'pnl-cal-cell empty-day ' + (i === 0 || i === 6 ? 'cal-weekend' : 'cal-weekday');
+      empty.className = 'pnl-cal-cell empty-day';
       empty.setAttribute('aria-hidden', 'true');
       grid.appendChild(empty);
     }
@@ -3743,6 +3765,7 @@ function renderCalendarGates(iso) {
       const row = dailyByDate[iso];
       const nyse = NYSE_CAL[iso];
       const weekday = new Date(viewYear, viewMonth, day).getDay();
+      if (mobile && (weekday === 0 || weekday === 6)) continue;
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'pnl-cal-cell';
@@ -3761,7 +3784,7 @@ function renderCalendarGates(iso) {
         if (pnl > 0) outcomeClass = 'day-outcome-pos';
         else if (pnl < 0) outcomeClass = 'day-outcome-neg';
         else outcomeClass = 'day-outcome-zero';
-        pnlText = fmtCalendarCellPnl(pnl);
+        pnlText = mobile ? fmtCalendarCellPnl(pnl) : fmtPnl(pnl);
       }
       btn.classList.add(outcomeClass);
       if (iso === selectedDate) btn.classList.add('selected');
@@ -3828,6 +3851,13 @@ function renderCalendarGates(iso) {
       renderCalendar();
     });
   }
+  var calendarResizeTimer;
+  window.addEventListener('resize', function () {
+    clearTimeout(calendarResizeTimer);
+    calendarResizeTimer = setTimeout(function () {
+      if (isMobileCalendar() !== calendarMobileMode) renderCalendar();
+    }, 120);
+  });
   renderCalendar();
 })();
 
