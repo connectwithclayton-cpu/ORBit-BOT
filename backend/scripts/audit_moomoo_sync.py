@@ -92,6 +92,10 @@ def _safe_int(v: Any, default: int = 0) -> int:
         return int(default)
 
 
+def _env_truthy(name: str) -> bool:
+    return str(os.getenv(name, "")).strip().lower() in ("1", "true", "yes")
+
+
 def _is_option_code(code: str) -> bool:
     raw = str(code or "").split(".")[-1]
     return bool(_OPTION_CODE_CORE_RE.match(raw))
@@ -287,8 +291,6 @@ def _normalize_recon_rows(rows: list[list[str]]) -> list[dict]:
         qty = _safe_int(r[5], 0)
         pnl = _safe_float(r[10], 0.0)
         if not code or qty <= 0:
-            continue
-        if not _is_option_code(code):
             continue
         out.append(
             {
@@ -493,6 +495,11 @@ def main() -> int:
             [k for k, v in Counter([x["fill_id"] for x in broker_fills]).items() if v > 1]
         )
         inventory_match = moomoo_open == open_inventory
+        fifo_trust_empty_broker = (
+            bool(open_inventory)
+            and not bool(moomoo_open)
+            and _env_truthy("FABIO_AUDIT_TRUST_FIFO_IF_BROKER_QUERY_EMPTY")
+        )
 
         recon_day = _per_day_pnl_from_recon(recon_rows)
         dash_day = _per_day_pnl_from_daily(dashboard["daily"])
@@ -507,7 +514,7 @@ def main() -> int:
             failures.append(f"missing_broker_fill_ids:{len(missing_in_sheets)}")
         if duplicate_sheet_ids:
             failures.append(f"duplicate_broker_fill_ids:{len(duplicate_sheet_ids)}")
-        if not inventory_match:
+        if not inventory_match and not fifo_trust_empty_broker:
             failures.append("inventory_mismatch")
         if pnl_mismatch_days:
             failures.append(f"dashboard_pnl_mismatch_days:{len(pnl_mismatch_days)}")
@@ -523,6 +530,7 @@ def main() -> int:
             "sheet_open_inventory_codes": len(open_inventory),
             "moomoo_open_inventory_codes": len(moomoo_open),
             "inventory_match": inventory_match,
+            "inventory_fifo_trusted_empty_broker": fifo_trust_empty_broker,
             "dashboard_backfill_session_rows": int(dashboard["backfill_session_rows"]),
         }
         event["drift"] = {

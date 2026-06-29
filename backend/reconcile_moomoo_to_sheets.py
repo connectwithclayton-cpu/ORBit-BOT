@@ -21,9 +21,12 @@ to align the gate to FIFO (dashboard ``open_positions`` stay empty/broker-only);
 from __future__ import annotations
 
 import datetime as dt
+import importlib.util
+import json
 import os
 import re
 from collections import defaultdict, deque
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from dotenv import load_dotenv
@@ -34,6 +37,7 @@ from fabio_bot_paths import fabio_bot_root
 from moomoo import OpenSecTradeContext, RET_OK, SecurityFirm, TrdEnv, TrdMarket
 
 from dashboard_writer import (
+    DATA_FILE as DASHBOARD_DATA_FILE,
     DashboardWriter,
     aggregate_closed_positions,
     normalize_and_validate_open_positions,
@@ -420,6 +424,22 @@ def _fetch_all_paper_fills() -> List[Dict]:
         ctx.close()
 
 
+def _dedupe_moomoo_records(records: List[Dict]) -> Tuple[List[Dict], int]:
+    """Drop exact duplicate broker fill identities returned by Moomoo history."""
+    seen: set[str] = set()
+    out: List[Dict] = []
+    dropped = 0
+    for rec in records:
+        fill_id = str(rec.get("fill_id", "")).strip()
+        if fill_id and fill_id in seen:
+            dropped += 1
+            continue
+        if fill_id:
+            seen.add(fill_id)
+        out.append(rec)
+    return out, dropped
+
+
 def _env_explicit_simulate_acc_ids() -> List[int] | None:
     raw = (os.getenv("MOOMOO_SIMULATE_ACC_ID") or "").strip()
     if not raw:
@@ -459,6 +479,13 @@ def _discovered_simulate_acc_ids(ctx: OpenSecTradeContext) -> Tuple[List[int] | 
     if not ids:
         return None, "no_simulate_rows_in_acc_list"
     return ids, "discovered"
+
+
+def _account_query_label(label: Any) -> str:
+    """Return non-identifying labels for broker account query diagnostics."""
+    if isinstance(label, int):
+        return "simulate_account"
+    return str(label)
 
 
 def _fetch_broker_open_inventory_with_meta() -> Tuple[Dict[str, int], Dict[str, Any]]:
@@ -513,7 +540,14 @@ def _fetch_broker_open_inventory_with_meta() -> Tuple[Dict[str, int], Dict[str, 
                     n = int(dq.shape[0])
                 except Exception:
                     n = None
-            per_q.append({"label": str(label), "ret": str(rq), "ret_ok": rq == RET_OK, "nrow": n})
+            per_q.append(
+                {
+                    "label": _account_query_label(label),
+                    "ret": str(rq),
+                    "ret_ok": rq == RET_OK,
+                    "nrow": n,
+                }
+            )
 
         nrow_total = sum(
             int(p["nrow"] or 0)
@@ -543,7 +577,7 @@ def _fetch_broker_open_inventory_with_meta() -> Tuple[Dict[str, int], Dict[str, 
                 "nrow_total": nrow_total,
                 "per_query": per_q,
                 "acc_source": acc_source_tag,
-                "simulate_acc_ids": acc_ids_used,
+                "simulate_acc_id_count": len(acc_ids_used or []),
             }
             return {}, empty_meta
 
@@ -582,7 +616,7 @@ def _fetch_broker_open_inventory_with_meta() -> Tuple[Dict[str, int], Dict[str, 
             "per_query": per_q,
             "supplement_acc_id_0_done": bool(acc_ids_used is not None and _supplement_acc0),
             "acc_source": acc_source_tag,
-            "simulate_acc_ids": acc_ids_used,
+            "simulate_acc_id_count": len(acc_ids_used or []),
             "dropped_zero_qty_lines": dropped_zero_qty,
             "used_can_sell_fallback": used_can_sell_fallback,
             "normalized_negative_qty": normalized_negative_qty,
@@ -911,6 +945,39 @@ def _build_daily(trades: List[Dict]) -> List[Dict]:
     return daily
 
 
+def _load_prior_daily_rows() -> list[dict]:
+    path = Path(DASHBOARD_DATA_FILE)
+    if not path.is_file():
+        return []
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if not isinstance(raw, dict):
+        return []
+    daily = raw.get("daily")
+    return [d for d in daily if isinstance(d, dict)] if isinstance(daily, list) else []
+
+
+def _run_calendar_journal_audit() -> None:
+    """Backfill no-trade reasons on NYSE weekdays after reconcile rebuilds daily rows."""
+    audit_py = Path(__file__).resolve().parent / "scripts" / "audit_session_calendar.py"
+    if not audit_py.is_file():
+        return
+    spec = importlib.util.spec_from_file_location("audit_session_calendar", audit_py)
+    if spec is None or spec.loader is None:
+        return
+    mod = importlib.util.module_from_spec(spec)
+    import sys
+
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    actions = mod.audit_and_backfill()
+    n = sum(1 for a in actions if a.get("action") == "backfill")
+    if n:
+        print(f"[reconcile] Calendar journal backfill: {n} day(s) updated.")
+
+
 def main():
     load_dotenv(fabio_bot_root() / ".env")
     dry_run = "--dry-run" in os.sys.argv
@@ -918,6 +985,12 @@ def main():
     print("Fetching PAPER fills from Moomoo...")
     moomoo_records = _fetch_all_paper_fills()
     print(f"Fetched {len(moomoo_records)} filled order records.")
+    moomoo_records, dropped_duplicate_fills = _dedupe_moomoo_records(moomoo_records)
+    if dropped_duplicate_fills:
+        print(
+            f"[reconcile] Dropped {dropped_duplicate_fills} duplicate broker fill "
+            "record(s) from Moomoo history."
+        )
 
     print("Connecting to Google Sheet...")
     sheet = _connect_sheet()
@@ -1114,7 +1187,11 @@ def main():
         if logger.is_connected():
             logger.log_alert("RECONCILE", f"Strategy-exit annotation skipped: {e}", "")
 
+    prior_daily = _load_prior_daily_rows()
     dashboard_daily = _build_daily(dashboard_trades)
+    dashboard_daily = DashboardWriter.merge_daily_calendar_journal(
+        dashboard_daily, prior_daily
+    )
 
     base_msg = (
         "Dashboard regenerated from FIFO-reconciled Moomoo fills "
@@ -1139,6 +1216,7 @@ def main():
     writer._save()
     writer._write_html()
     print(base_msg)
+    _run_calendar_journal_audit()
 
     ok_bf = logger.replace_tab_rows(TAB_BROKER_FILLS, HEADERS[TAB_BROKER_FILLS], broker_fill_rows)
     ok_rt = logger.replace_tab_rows(TAB_RECON_TRADES, HEADERS[TAB_RECON_TRADES], recon_rows)
