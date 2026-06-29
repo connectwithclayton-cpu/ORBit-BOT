@@ -592,6 +592,133 @@ a.header-btn:visited { color: var(--blue); }
   color: var(--blue);
 }
 .desk-section { scroll-margin-top: 108px; }
+
+.desktop-status-strip,
+.desktop-workspace {
+  display: none;
+}
+
+.desktop-status-strip {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.desktop-status-card {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.desktop-status-card.primary {
+  background: linear-gradient(135deg, rgba(79,195,247,0.10), rgba(255,255,255,0.025));
+  border-color: rgba(79,195,247,0.28);
+}
+.desktop-status-k {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.desktop-status-v {
+  min-width: 0;
+  font-size: 19px;
+  font-weight: 750;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.desktop-status-s {
+  min-width: 0;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.desktop-workspace {
+  gap: 14px;
+  align-items: start;
+  margin: 0 0 16px;
+}
+.desktop-workspace-main,
+.desktop-workspace-side {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.desktop-workspace .table-card,
+.desktop-workspace .trading-view-panel {
+  margin: 0;
+}
+.desktop-ops-card {
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.desktop-ops-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.desktop-ops-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.desktop-ops-action {
+  border: 1px solid rgba(79,195,247,0.42);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(79,195,247,0.10);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.desktop-ops-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.desktop-ops-item {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card2);
+}
+.desktop-ops-item .ops-k {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+.desktop-ops-item .ops-v {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.desktop-ops-note {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
 .section-caption {
   font-size: 12px;
   color: var(--muted);
@@ -1082,6 +1209,14 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     padding-right: max(14px, env(safe-area-inset-right));
   }
   .desk-file-banner { order: 1; }
+  .desktop-workspace,
+  .desktop-workspace-main,
+  .desktop-workspace-side {
+    display: contents;
+  }
+  .desktop-ops-card {
+    display: none !important;
+  }
   #sectionOverview { order: 4; }
   #sectionPositions { order: 5; }
   #sectionCalendar { order: 6; }
@@ -1163,7 +1298,27 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 }
 
 @media (min-width: 769px) {
-  .desk-hero, .desk-jump-nav { display: none !important; }
+  .desk-hero { display: none !important; }
+  .desktop-status-strip { display: grid; }
+  .desktop-workspace {
+    display: grid;
+    grid-template-columns: minmax(420px, 0.95fr) minmax(520px, 1.45fr);
+  }
+  .desk-jump-nav {
+    display: flex;
+    position: sticky;
+    top: 43px;
+    z-index: 44;
+    margin: 0 0 14px;
+    padding: 10px 0;
+    background: rgba(13, 13, 13, 0.94);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .desk-jump-link {
+    padding: 7px 12px;
+    font-size: 11px;
+  }
   .kpi-grid .kpi-secondary { display: block; }
   .kpi-more-row { display: none; }
   .filters-drawer { margin-left: auto; }
@@ -1171,6 +1326,63 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   .filters-drawer .filters { display: flex !important; }
   .tv-panel-head { display: none !important; }
   .trading-view-panel.tv-collapsed .tv-body { display: block !important; }
+  .kpi-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 0;
+    margin-bottom: 14px;
+  }
+  .kpi-card {
+    padding: 12px 14px;
+    border-radius: 8px;
+  }
+  .kpi-label {
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-size: 19px;
+  }
+  .kpi-sub {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tv-chart-wrap {
+    height: min(470px, 54vh);
+  }
+  .pnl-calendar-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 14px;
+    align-items: start;
+  }
+  .pnl-calendar-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(270px, 0.34fr);
+    gap: 14px;
+    align-items: start;
+  }
+  .pnl-calendar-detail {
+    margin-top: 30px;
+    position: sticky;
+    top: 96px;
+  }
+  .calendar-gates-card {
+    margin-top: 0;
+    justify-self: stretch;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1180px) {
+  .desktop-status-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .desktop-workspace { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pnl-calendar-shell { grid-template-columns: 1fr; }
+  .pnl-calendar-detail {
+    margin-top: 0;
+    position: static;
+  }
 }
 
 @media (max-width: 600px) {
@@ -1211,80 +1423,11 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   .trade-day-more-btn { min-height: 44px; padding: 10px 16px; }
   .collapse-btn { min-height: 44px; padding: 10px 12px; }
   .header-btn { min-height: 36px; padding: 6px 12px; }
-  .pnl-calendar-head {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-  .pnl-calendar-title {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 4px 8px;
-    align-items: baseline;
-  }
-  .pnl-calendar-title > span:first-child { grid-column: 1 / -1; }
-  .pnl-calendar-title .row-count { margin-left: 0; }
-  .pnl-calendar-month-pnl {
-    justify-self: end;
-    font-size: 13px;
-  }
-  .pnl-calendar-nav {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .pnl-calendar-nav button {
-    flex: 1;
-    min-height: 38px;
-    font-size: 14px;
-  }
-  .pnl-calendar-weekdays {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 6px;
-    margin: 10px 0 6px;
-    font-size: 11px;
-  }
-  .pnl-calendar-weekdays span:first-child,
-  .pnl-calendar-weekdays span:last-child { display: none; }
-  .pnl-calendar-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 6px;
-    width: 100%;
-    max-width: 100%;
-  }
-  .pnl-cal-cell.cal-weekend { display: none; }
-  .pnl-cal-cell {
-    min-width: 0;
-    min-height: 72px;
-    padding: 7px 3px;
-    border-radius: 8px;
-    gap: 4px;
-    overflow: hidden;
-  }
-  .pnl-cal-cell .cal-pnl {
-    font-size: 15px;
-    font-weight: 800;
-    line-height: 1.1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: clip;
-  }
-  .pnl-cal-cell .cal-trades,
-  .pnl-cal-cell .cal-reason,
-  .pnl-cal-cell .cal-pct-line { display: none; }
-  .pnl-cal-cell .cal-day-num {
-    font-size: 11px;
-    text-align: right;
-    align-self: flex-end;
-    padding-right: 3px;
-  }
-  .pnl-cal-cell.day-nyse-closed .cal-pnl { font-size: 13px; }
-  .pnl-cal-cell .cal-early-badge { display: none; }
   .calendar-gate-row {
     grid-template-columns: 1fr;
     gap: 4px;
   }
   .calendar-gates-card { padding: 10px 12px; }
-  .pnl-calendar-detail { padding: 10px 12px; font-size: 12px; }
   .ops-filter-btn {
     min-height: 40px;
     padding: 8px 12px;
@@ -1364,6 +1507,10 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 
 /* Session P&L calendar */
 .pnl-calendar-card { margin-bottom: 20px; }
+.pnl-calendar-shell,
+.pnl-calendar-board {
+  min-width: 0;
+}
 .pnl-calendar-head {
   display: flex;
   align-items: center;
@@ -1641,7 +1788,33 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   color: var(--muted);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .pnl-calendar-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .pnl-calendar-title {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px 8px;
+    align-items: baseline;
+  }
+  .pnl-calendar-title > span:first-child { grid-column: 1 / -1; }
+  .pnl-calendar-title .row-count { margin-left: 0; }
+  .pnl-calendar-month-pnl {
+    justify-self: end;
+    font-size: 13px;
+  }
+  .pnl-calendar-nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .pnl-calendar-nav button {
+    flex: 1;
+    min-height: 38px;
+    font-size: 14px;
+  }
   .pnl-calendar-weekdays {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 6px;
@@ -1683,8 +1856,16 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     overflow: hidden;
     text-overflow: clip;
   }
+  .pnl-cal-cell .cal-trades,
+  .pnl-cal-cell .cal-reason,
+  .pnl-cal-cell .cal-pct-line { display: none; }
   .pnl-cal-cell.day-nyse-closed .cal-pnl {
     font-size: 13px;
+  }
+  .pnl-cal-cell .cal-early-badge { display: none; }
+  .pnl-calendar-detail {
+    padding: 10px 12px;
+    font-size: 12px;
   }
 }
 
@@ -1955,6 +2136,39 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     <code>http://127.0.0.1:8765/live_dashboard.html</code> — the LIVE indicator will not update on <code>file://</code> pages.</span>
   </div>
 
+  <section class="desktop-status-strip desk-section" id="sectionToday" aria-label="Today and live status">
+    <div class="desktop-status-card primary">
+      <div class="desktop-status-k">Bot</div>
+      <div class="desktop-status-v" id="desktopBotStatus">—</div>
+      <div class="desktop-status-s" id="desktopBotSub">status source loading</div>
+    </div>
+    <div class="desktop-status-card">
+      <div class="desktop-status-k">Open risk</div>
+      <div class="desktop-status-v" id="desktopOpenCount">—</div>
+      <div class="desktop-status-s" id="desktopOpenSub">current positions</div>
+    </div>
+    <div class="desktop-status-card">
+      <div class="desktop-status-k">Latest day</div>
+      <div class="desktop-status-v" id="desktopDayPnl">—</div>
+      <div class="desktop-status-s" id="desktopDaySub">session P&amp;L</div>
+    </div>
+    <div class="desktop-status-card">
+      <div class="desktop-status-k">Month P&amp;L</div>
+      <div class="desktop-status-v" id="desktopMonthPnl">—</div>
+      <div class="desktop-status-s" id="desktopMonthSub">calendar month</div>
+    </div>
+    <div class="desktop-status-card">
+      <div class="desktop-status-k">Capital</div>
+      <div class="desktop-status-v" id="desktopCapital">—</div>
+      <div class="desktop-status-s" id="desktopCapitalSub">EOD account</div>
+    </div>
+    <div class="desktop-status-card">
+      <div class="desktop-status-k">Updated</div>
+      <div class="desktop-status-v" id="desktopUpdated">—</div>
+      <div class="desktop-status-s" id="desktopUpdatedSub">America/New_York</div>
+    </div>
+  </section>
+
   <div class="desk-hero" id="deskHero" aria-label="At a glance">
     <div class="desk-hero-label">At a glance</div>
     <div class="desk-hero-grid">
@@ -1981,12 +2195,12 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
   </div>
 
   <nav class="desk-jump-nav" id="deskJumpNav" aria-label="Jump to section">
-    <a class="desk-jump-link" href="#sectionOverview">Stats</a>
-    <a class="desk-jump-link" href="#sectionPositions">Open</a>
+    <a class="desk-jump-link" href="#sectionToday">Today</a>
+    <a class="desk-jump-link" href="#sectionPositions">Positions</a>
+    <a class="desk-jump-link" href="#tradingViewPanel">Chart</a>
+    <a class="desk-jump-link" href="#performanceAnalyticsPanel">Performance</a>
     <a class="desk-jump-link" href="#sectionCalendar">Calendar</a>
     <a class="desk-jump-link" href="#allTradesCard">Trades</a>
-    <a class="desk-jump-link" href="#tradingViewPanel">Chart</a>
-    <a class="desk-jump-link" href="#performanceAnalyticsPanel">Analytics</a>
   </nav>
 
   <!-- KPI Cards -->
@@ -2039,6 +2253,62 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     </div>
   </div>
 
+  <div class="desktop-workspace desk-section" id="activeDesk">
+    <div class="desktop-workspace-main">
+  <!-- Open Positions -->
+  <div class="table-card desk-section" id="sectionPositions">
+    <div class="table-header">
+      <h3>Open positions <span class="row-count" id="openRowCount"></span></h3>
+    </div>
+    <p class="section-caption">What the bot is holding right now — flat when no entries are open.</p>
+    <div class="table-scroll">
+      <table id="openPositionsTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Symbol</th>
+            <th>Dir</th>
+            <th>Entry</th>
+            <th>Entry $</th>
+            <th>Contracts</th>
+            <th>VIX</th>
+            <th>OR/ATR</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="openTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <section class="desktop-ops-card" id="desktopOpsSnapshot" aria-label="Latest ops status">
+    <div class="desktop-ops-head">
+      <div class="desktop-ops-title">Latest ops status</div>
+      <button type="button" class="desktop-ops-action" id="desktopOpsBtn">Live ops</button>
+    </div>
+    <div class="desktop-ops-grid">
+      <div class="desktop-ops-item">
+        <div class="ops-k">Ledger book</div>
+        <div class="ops-v" id="desktopOpsBook">—</div>
+      </div>
+      <div class="desktop-ops-item">
+        <div class="ops-k">Circuit</div>
+        <div class="ops-v" id="desktopOpsCircuit">—</div>
+      </div>
+      <div class="desktop-ops-item">
+        <div class="ops-k">Signals</div>
+        <div class="ops-v" id="desktopOpsSignals">—</div>
+      </div>
+      <div class="desktop-ops-item">
+        <div class="ops-k">Cadence</div>
+        <div class="ops-v" id="desktopOpsCadence">—</div>
+      </div>
+    </div>
+    <div class="desktop-ops-note" id="desktopOpsNote">Snapshot loads from the same live status payload as the Ops Board.</div>
+  </section>
+    </div>
+
+    <div class="desktop-workspace-side">
   <div class="trading-view-panel desk-section tv-collapsed" id="tradingViewPanel">
     <div class="tv-panel-head">
       <div class="section-title">Live chart</div>
@@ -2079,30 +2349,6 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     </div>
     </div><!-- /tv-body -->
   </div><!-- /trading-view-panel -->
-
-  <!-- Open Positions -->
-  <div class="table-card desk-section" id="sectionPositions">
-    <div class="table-header">
-      <h3>Open positions <span class="row-count" id="openRowCount"></span></h3>
-    </div>
-    <p class="section-caption">What the bot is holding right now — flat when no entries are open.</p>
-    <div class="table-scroll">
-      <table id="openPositionsTable">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Symbol</th>
-            <th>Dir</th>
-            <th>Entry</th>
-            <th>Entry $</th>
-            <th>Contracts</th>
-            <th>VIX</th>
-            <th>OR/ATR</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="openTableBody"></tbody>
-      </table>
     </div>
   </div>
 
@@ -2188,15 +2434,19 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
       </div>
     </div>
     <p class="section-caption">Tap a day for P&amp;L and notes — jumps to that day&apos;s trades below.</p>
-    <div class="pnl-calendar-weekdays" aria-hidden="true">
-      <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
-      <span>Thu</span><span>Fri</span><span>Sat</span>
-    </div>
-    <div class="pnl-calendar-grid" id="pnlCalendarGrid" role="grid" aria-label="Daily P and L calendar"></div>
-    <div class="pnl-calendar-detail" id="pnlCalendarDetail">
-      <h4 id="calDetailTitle">Select a day</h4>
-      <p id="calDetailBody" style="margin:0;color:var(--muted)">Daily net P&amp;L and session notes appear here. Click a day to jump to its trades below.</p>
-      <div class="reason-tags" id="calDetailTags"></div>
+    <div class="pnl-calendar-shell">
+      <div class="pnl-calendar-board">
+        <div class="pnl-calendar-weekdays" aria-hidden="true">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
+          <span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div class="pnl-calendar-grid" id="pnlCalendarGrid" role="grid" aria-label="Daily P and L calendar"></div>
+      </div>
+      <div class="pnl-calendar-detail" id="pnlCalendarDetail">
+        <h4 id="calDetailTitle">Select a day</h4>
+        <p id="calDetailBody" style="margin:0;color:var(--muted)">Daily net P&amp;L and session notes appear here. Click a day to jump to its trades below.</p>
+        <div class="reason-tags" id="calDetailTags"></div>
+      </div>
     </div>
     <details class="calendar-gates-card" id="calendarGatesCard" aria-live="polite">
       <summary class="calendar-gates-summary">
@@ -2454,6 +2704,7 @@ function applyBotStatus(st, options) {
     el.classList.add('bot-status-checking');
     if (label) label.textContent = 'CHECKING…';
     el.title = 'Checking bot status…';
+    if (typeof syncDesktopStatusBot === 'function') syncDesktopStatusBot(st, 'Checking', 'polling live status');
     return;
   }
 
@@ -2469,24 +2720,28 @@ function applyBotStatus(st, options) {
     el.classList.add('bot-status-off');
     if (label) label.textContent = 'OFF';
     el.title = 'Process up but heartbeat stale (>15m) — bot may be hung' + pidNote;
+    if (typeof syncDesktopStatusBot === 'function') syncDesktopStatusBot(st, 'Off', 'heartbeat dead' + pidNote);
     return;
   }
   if (running && paused) {
     el.classList.add('bot-status-paused');
     if (label) label.textContent = 'PAUSED';
     el.title = 'Bot running — entries paused' + pidNote + ' · ' + ageNote;
+    if (typeof syncDesktopStatusBot === 'function') syncDesktopStatusBot(st, 'Paused', ageNote + pidNote);
     return;
   }
   if (running && heartbeatStale) {
     el.classList.add('bot-status-stale');
     if (label) label.textContent = 'STALE';
     el.title = 'Bot process up — heartbeat stale (>2m)' + pidNote + ' · ' + ageNote;
+    if (typeof syncDesktopStatusBot === 'function') syncDesktopStatusBot(st, 'Stale', ageNote + pidNote);
     return;
   }
   if (running) {
     el.classList.add('bot-status-on');
     if (label) label.textContent = 'LIVE';
     el.title = 'Bot live' + pidNote + ' · ' + ageNote;
+    if (typeof syncDesktopStatusBot === 'function') syncDesktopStatusBot(st, 'Live', ageNote + pidNote);
     return;
   }
   el.classList.add('bot-status-off');
@@ -2494,6 +2749,9 @@ function applyBotStatus(st, options) {
   el.title = (st && st.session_complete)
     ? 'Bot stopped cleanly — ' + ageNote
     : 'Bot not running — fabio bot to start';
+  if (typeof syncDesktopStatusBot === 'function') {
+    syncDesktopStatusBot(st, (st && st.session_complete) ? 'Stopped' : 'Off', ageNote);
+  }
   if (typeof syncDeskHeroBot === 'function') syncDeskHeroBot(st);
 }
 
@@ -2552,6 +2810,13 @@ function applyBotStatus(st, options) {
   var heroOpsBtn = document.getElementById('heroOpsBtn');
   if (heroOpsBtn) {
     heroOpsBtn.addEventListener('click', function () {
+      showView('ops');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+  var desktopOpsBtn = document.getElementById('desktopOpsBtn');
+  if (desktopOpsBtn) {
+    desktopOpsBtn.addEventListener('click', function () {
       showView('ops');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
@@ -2690,6 +2955,14 @@ function applyBotStatus(st, options) {
       '<div class="ops-stat-card"><div class="ops-stat-label">Open signals</div><div class="ops-stat-value">' + escHtml(openSigs) + '</div><div class="ops-stat-sub">Positions under management</div></div>' +
       '<div class="ops-stat-card"><div class="ops-stat-label">Pending entries</div><div class="ops-stat-value">' + escHtml(pendingTxt) + '</div><div class="ops-stat-sub">Non-blocking fill polling</div></div>' +
       '<div class="ops-stat-card"><div class="ops-stat-label">Loop cadence</div><div class="ops-stat-value">' + escHtml(cadence) + '</div><div class="ops-stat-sub">Queue ' + escHtml(String(q)) + (snap.paused ? ' · PAUSED' : '') + '</div></div>';
+    setText('desktopOpsBook', book);
+    setText('desktopOpsCircuit', loss + ' · ' + String(circuit.trade_count || 0) + ' trades');
+    setText('desktopOpsSignals', openSigs);
+    setText('desktopOpsCadence', cadence);
+    setText(
+      'desktopOpsNote',
+      'Queue ' + String(q) + (pending.length ? ' · pending ' + pendingTxt : ' · no pending entries')
+    );
   }
 
   function refreshFeed() {
@@ -2740,6 +3013,11 @@ function escHtml(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function setText(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = val == null ? '—' : String(val);
 }
 
 /** Condensed no-trade reason(s) for calendar cell (max 2 tags + overflow). */
@@ -3358,10 +3636,41 @@ function syncDeskHeroBot(st) {
   el.className = cls;
 }
 
+function syncDesktopStatusBot(st, statusText, subText) {
+  st = st || (DATA.bot_status || {});
+  var statusEl = document.getElementById('desktopBotStatus');
+  if (!statusEl) return;
+  var running = !!(st && st.running);
+  var paused = !!(st && st.paused);
+  var text = statusText || 'Off';
+  var cls = 'desktop-status-v';
+  if (!statusText) {
+    if (running && paused) text = 'Paused';
+    else if (running) text = 'Live';
+    else if (st && st.session_complete) text = 'Stopped';
+  }
+  if (/live/i.test(text)) cls += ' green';
+  else if (/paused|stale|checking/i.test(text)) cls += ' yellow';
+  else if (/off/i.test(text)) cls += ' red';
+  statusEl.textContent = text;
+  statusEl.className = cls;
+  setText('desktopBotSub', subText || formatHeartbeatAge(heartbeatAgeSec(st && st.checked_at_utc)));
+}
+
 function syncDeskHeroOpenCount(n) {
   var el = document.getElementById('heroOpenCount');
-  if (!el) return;
-  el.textContent = n === 1 ? '1 open position' : n + ' open positions';
+  var text = n === 1 ? '1 open position' : n + ' open positions';
+  if (el) el.textContent = text;
+  setText('desktopOpenCount', n);
+  var syms = {};
+  (openPositions || []).forEach(function (p) {
+    var qty = Number(p && p.contracts != null ? p.contracts : 0);
+    if (!(qty > 0)) return;
+    var sym = String((p && p.symbol) || '').trim().toUpperCase();
+    if (sym) syms[sym] = true;
+  });
+  var list = Object.keys(syms);
+  setText('desktopOpenSub', list.length ? list.join(' · ') : 'flat');
 }
 
 function updateFiltersActiveCount() {
@@ -3482,6 +3791,42 @@ function updateFiltersActiveCount() {
   const et = formatEasternFromIso(genIso);
   const ts = et || sessionDate;
   document.getElementById('lastUpdated').textContent = ts;
+  var updatedMain = ts;
+  var updatedSub = 'America/New_York';
+  var updatedMatch = String(ts || '').match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})(?::\d{2})?\s+([A-Z]+)$/);
+  if (updatedMatch) {
+    updatedMain = updatedMatch[2] + ' ' + updatedMatch[3];
+    updatedSub = updatedMatch[1];
+  }
+  setText('desktopUpdated', updatedMain || '—');
+  setText('desktopUpdatedSub', updatedSub);
+  if (lastDaily) {
+    var dayPnl = Number(lastDaily.net_pnl || 0);
+    var dayEl = document.getElementById('desktopDayPnl');
+    if (dayEl) {
+      dayEl.textContent = fmtPnl(dayPnl);
+      dayEl.className = 'desktop-status-v ' + (dayPnl >= 0 ? 'green' : 'red');
+    }
+    setText('desktopDaySub', lastDaily.date + ' · ' + Number(lastDaily.total_trades || 0) + ' closed');
+    var cap = Number(lastDaily.capital || 0);
+    setText('desktopCapital', cap > 0 ? '$' + cap.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—');
+    setText('desktopCapitalSub', cap > 0 ? 'after latest EOD' : 'no EOD capital');
+  }
+  var monthPrefix = sessionDate.slice(0, 7) + '-';
+  var monthSum = 0;
+  var monthDays = 0;
+  daily.forEach(function (d) {
+    if (!d || !d.date || d.date.indexOf(monthPrefix) !== 0) return;
+    monthSum += Number(d.net_pnl || 0);
+    monthDays += 1;
+  });
+  var monthEl = document.getElementById('desktopMonthPnl');
+  if (monthEl) {
+    monthEl.textContent = monthDays ? fmtPnl(monthSum) : '—';
+    monthEl.className = 'desktop-status-v ' + (monthSum >= 0 ? 'green' : 'red');
+  }
+  setText('desktopMonthSub', monthDays ? monthPrefix.slice(0, 7) + ' · ' + monthDays + ' sessions' : 'no sessions');
+  syncDesktopStatusBot(DATA.bot_status || {});
   if (typeof syncDeskHeroKpis === 'function') {
     syncDeskHeroKpis({ netPnl: netPnl, n: n, wr: wr, winners: winners.length, losers: losers.length });
   }
@@ -3643,13 +3988,11 @@ function renderCalendarGates(iso) {
 
   function syncCalendarLayoutMode(mobile) {
     const weekdays = document.querySelector('.pnl-calendar-weekdays');
-    grid.style.gridTemplateColumns = mobile ? 'repeat(5, minmax(0, 1fr))' : '';
+    const card = grid.closest('.pnl-calendar-card');
+    if (card) card.classList.toggle('pnl-calendar-mobile', mobile);
     grid.classList.toggle('pnl-calendar-mobile-grid', mobile);
     if (!weekdays) return;
-    weekdays.style.gridTemplateColumns = mobile ? 'repeat(5, minmax(0, 1fr))' : '';
-    weekdays.querySelectorAll('span').forEach(function (span, idx) {
-      span.style.display = mobile && (idx === 0 || idx === 6) ? 'none' : '';
-    });
+    weekdays.classList.toggle('pnl-calendar-mobile-weekdays', mobile);
   }
 
   function monthName(y, m) {
@@ -4621,6 +4964,9 @@ function renderTable() {
       link.addEventListener('click', function (e) {
         var id = (link.getAttribute('href') || '').replace('#', '');
         var target = id ? document.getElementById(id) : null;
+        if (target && target.offsetParent === null && id === 'sectionToday') {
+          target = document.getElementById('sectionOverview');
+        }
         if (target) {
           e.preventDefault();
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -4629,8 +4975,8 @@ function renderTable() {
     });
     if ('IntersectionObserver' in window) {
       var sections = [
-        'sectionOverview', 'sectionPositions', 'sectionCalendar',
-        'allTradesCard', 'tradingViewPanel', 'performanceAnalyticsPanel'
+        'sectionToday', 'sectionPositions', 'tradingViewPanel',
+        'performanceAnalyticsPanel', 'sectionCalendar', 'allTradesCard'
       ].map(function (id) { return document.getElementById(id); }).filter(Boolean);
       var obs = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
