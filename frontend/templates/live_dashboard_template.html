@@ -1242,17 +1242,25 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     margin: 8px 0 4px;
     font-size: 9px;
   }
-  .pnl-calendar-grid { gap: 1px; }
+  .pnl-calendar-grid {
+    gap: 2px;
+    width: 100%;
+    max-width: 100%;
+  }
   .pnl-cal-cell {
-    min-height: 44px;
-    padding: 3px 2px;
+    min-width: 0;
+    min-height: 42px;
+    padding: 4px 1px;
     border-radius: 5px;
     gap: 1px;
+    overflow: hidden;
   }
   .pnl-cal-cell .cal-pnl {
-    font-size: 10px;
+    font-size: 9px;
     line-height: 1.1;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
   }
   .pnl-cal-cell .cal-trades,
   .pnl-cal-cell .cal-reason,
@@ -1340,8 +1348,12 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
     width: 100%;
   }
   .tv-btn { flex: 1 1 calc(50% - 4px); text-align: center; }
-  .pnl-cal-cell { min-height: 40px; }
-  .pnl-cal-cell .cal-pnl { font-size: 9px; }
+  .pnl-cal-cell {
+    min-height: 40px;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .pnl-cal-cell .cal-pnl { font-size: 8px; }
 }
 /* Older cached builds may still ship #betaGitMeta; keep hidden before/without JS. */
 #betaGitMeta { display: none !important; }
@@ -1387,7 +1399,7 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 .pnl-calendar-nav button:hover { border-color: var(--accent); }
 .pnl-calendar-weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
   margin: 12px 0 6px;
   font-size: 11px;
@@ -1396,10 +1408,11 @@ tbody td { padding: 9px 12px; vertical-align: middle; }
 }
 .pnl-calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
 }
 .pnl-cal-cell {
+  min-width: 0;
   min-height: 82px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -3141,6 +3154,14 @@ function fmtPnl(v) {
   const sign = v >= 0 ? '+' : '';
   return sign + '$' + v.toFixed(2);
 }
+function fmtCalendarCellPnl(v) {
+  const n = Number(v || 0);
+  const sign = n >= 0 ? '+' : '-';
+  const abs = Math.abs(n);
+  if (abs === 0) return '$0';
+  if (abs >= 1000) return sign + '$' + (abs / 1000).toFixed(abs >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k';
+  return sign + '$' + abs.toFixed(0);
+}
 function fmtPct(v) {
   const sign = v >= 0 ? '+' : '';
   return sign + v.toFixed(1) + '%';
@@ -3540,6 +3561,7 @@ function renderCalendarGates(iso) {
   let viewYear = now.getFullYear();
   let viewMonth = now.getMonth();
   let selectedDate = CAL_CTX.today_et || (daily.length ? daily[daily.length - 1].date : null);
+  const compactCellMedia = window.matchMedia ? window.matchMedia('(max-width: 600px)') : null;
 
   function monthName(y, m) {
     return new Date(y, m, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
@@ -3664,10 +3686,11 @@ function renderCalendarGates(iso) {
         if (pnl > 0) outcomeClass = 'day-outcome-pos';
         else if (pnl < 0) outcomeClass = 'day-outcome-neg';
         else outcomeClass = 'day-outcome-zero';
-        pnlText = fmtPnl(pnl);
+        pnlText = compactCellMedia && compactCellMedia.matches ? fmtCalendarCellPnl(pnl) : fmtPnl(pnl);
       }
       btn.classList.add(outcomeClass);
       if (iso === selectedDate) btn.classList.add('selected');
+      if (row) btn.setAttribute('title', iso + ' · Net P&L ' + fmtPnl(pnl));
 
       var subLine = '';
       var pctLine = '';
