@@ -101,9 +101,18 @@ def _is_option_code(code: str) -> bool:
     return bool(_OPTION_CODE_CORE_RE.match(raw))
 
 
-def _moomoo_fill_id(updated_time: str, code: str, side: str, qty: int, price: float) -> str:
+def _moomoo_fill_id(
+    updated_time: str,
+    code: str,
+    side: str,
+    qty: int,
+    price: float,
+    order_id: str = "",
+) -> str:
     ts = str(updated_time or "")[:19]
-    return f"{ts}|{code}|{side}|{qty}|{price:.4f}"
+    core = f"{ts}|{code}|{side}|{qty}|{price:.4f}"
+    oid = str(order_id or "").strip()
+    return f"{oid}|{core}" if oid else core
 
 
 def _parse_dt_utc(ts: str) -> dt.datetime | None:
@@ -179,7 +188,14 @@ def _fetch_moomoo_closed_option_sells(lookback_minutes: int) -> list[dict]:
             ts = str(r.get("updated_time", r.get("create_time", "")))[:19]
             out.append(
                 {
-                    "fill_id": _moomoo_fill_id(ts, code, side, qty, px),
+                    "fill_id": _moomoo_fill_id(
+                        ts,
+                        code,
+                        side,
+                        qty,
+                        px,
+                        str(r.get("order_id", "") or ""),
+                    ),
                     "time": ts,
                     "date": ts[:10],
                     "code": code,

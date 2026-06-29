@@ -403,11 +403,17 @@ def _fetch_all_paper_fills() -> List[Dict]:
             ts = str(r.get("updated_time", r.get("create_time", "")))[:19]
             code = str(r.get("code", ""))
             trd_side = str(r.get("trd_side", ""))
-            fill_id = f"{ts}|{code}|{trd_side}|{dealt_qty}|{_safe_float(r.get('dealt_avg_price', 0.0)):.4f}"
+            order_id = str(r.get("order_id", "") or "").strip()
+            fill_core = (
+                f"{ts}|{code}|{trd_side}|{dealt_qty}|"
+                f"{_safe_float(r.get('dealt_avg_price', 0.0)):.4f}"
+            )
+            fill_id = f"{order_id}|{fill_core}" if order_id else fill_core
             symbol, direction = _extract_symbol_and_direction(code, trd_side)
             records.append(
                 {
                     "fill_id": fill_id,
+                    "order_id": order_id,
                     "code": code,
                     "symbol": symbol,
                     "direction": direction,
